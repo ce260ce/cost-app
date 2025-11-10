@@ -1,0 +1,386 @@
+export type CategoryLarge = {
+  id: string
+  name: string
+  description?: string
+}
+
+export type CategoryMedium = {
+  id: string
+  largeId: string
+  name: string
+  description?: string
+}
+
+export type CategorySmall = {
+  id: string
+  mediumId: string
+  name: string
+  description?: string
+}
+
+export type Material = {
+  id: string
+  name: string
+  unit: string
+  sizeDescription: string
+  currency: string
+  note?: string
+}
+
+export type PackagingItem = {
+  id: string
+  name: string
+  unit: string
+  sizeDescription: string
+  currency: string
+  note?: string
+}
+
+export type LaborRole = {
+  id: string
+  name: string
+  hourlyRate: number
+  currency: string
+  note?: string
+}
+
+export type Equipment = {
+  id: string
+  name: string
+  acquisitionCost: number
+  currency: string
+  amortizationYears: number
+  note?: string
+}
+
+export type Product = {
+  id: string
+  name: string
+  categoryLargeId?: string
+  categoryMediumId?: string
+  categorySmallId?: string
+  sizes: string[]
+  baseManHours: number
+  defaultElectricityCost: number
+  registeredAt: string
+  options: string[]
+  expectedProduction: {
+    periodYears: number
+    quantity: number
+  }
+  equipmentIds: string[]
+}
+
+export type MaterialCostEntry = {
+  id: string
+  productId: string
+  materialId: string
+  description?: string
+  costPerUnit: number
+  currency: string
+}
+
+export type PackagingCostEntry = {
+  id: string
+  productId: string
+  packagingItemId: string
+  quantity: number
+  costPerUnit: number
+  currency: string
+}
+
+export type LaborCostEntry = {
+  id: string
+  productId: string
+  laborRoleId: string
+  hours: number
+  peopleCount: number
+  hourlyRateOverride?: number
+}
+
+export type OutsourcingCostEntry = {
+  id: string
+  productId: string
+  costPerUnit: number
+  currency: string
+  note?: string
+}
+
+export type DevelopmentCostEntry = {
+  id: string
+  productId: string
+  prototypeLaborCost: number
+  prototypeMaterialCost: number
+  toolingCost: number
+  amortizationYears: number
+}
+
+export type EquipmentAllocationEntry = {
+  id: string
+  productId: string
+  equipmentId: string
+  allocationRatio: number
+  annualQuantity: number
+}
+
+export type LogisticsCostEntry = {
+  id: string
+  productId: string
+  shippingMethod: string
+  costPerUnit: number
+  currency: string
+}
+
+export type ElectricityCostEntry = {
+  id: string
+  productId: string
+  costPerUnit: number
+  currency: string
+}
+
+export type AppData = {
+  categories: {
+    large: CategoryLarge[]
+    medium: CategoryMedium[]
+    small: CategorySmall[]
+  }
+  materials: Material[]
+  packagingItems: PackagingItem[]
+  laborRoles: LaborRole[]
+  equipments: Equipment[]
+  products: Product[]
+  costEntries: {
+    materials: MaterialCostEntry[]
+    packaging: PackagingCostEntry[]
+    labor: LaborCostEntry[]
+    outsourcing: OutsourcingCostEntry[]
+    development: DevelopmentCostEntry[]
+    equipmentAllocations: EquipmentAllocationEntry[]
+    logistics: LogisticsCostEntry[]
+    electricity: ElectricityCostEntry[]
+  }
+}
+
+export const emptyAppData: AppData = {
+  categories: {
+    large: [],
+    medium: [],
+    small: [],
+  },
+  materials: [],
+  packagingItems: [],
+  laborRoles: [],
+  equipments: [],
+  products: [],
+  costEntries: {
+    materials: [],
+    packaging: [],
+    labor: [],
+    outsourcing: [],
+    development: [],
+    equipmentAllocations: [],
+    logistics: [],
+    electricity: [],
+  },
+}
+
+export const sampleAppData: AppData = {
+  categories: {
+    large: [
+      { id: "cat-l-1", name: "バッグ", description: "バッグ系プロダクト" },
+      { id: "cat-l-2", name: "アクセサリー", description: "アクセサリー系" },
+    ],
+    medium: [
+      { id: "cat-m-1", largeId: "cat-l-1", name: "トート", description: "トートバッグ" },
+      { id: "cat-m-2", largeId: "cat-l-1", name: "ショルダー", description: "ショルダーバッグ" },
+    ],
+    small: [
+      { id: "cat-s-1", mediumId: "cat-m-1", name: "ミニトート", description: "小型トート" },
+    ],
+  },
+  materials: [
+    {
+      id: "mat-1",
+      name: "キャンバス生地",
+      unit: "m",
+      sizeDescription: "50m ロール",
+      currency: "JPY",
+      note: "8号帆布",
+    },
+    {
+      id: "mat-2",
+      name: "本革",
+      unit: "㎡",
+      sizeDescription: "10㎡ ロット",
+      currency: "JPY",
+      note: "タンニンなめし",
+    },
+  ],
+  packagingItems: [
+    {
+      id: "pack-1",
+      name: "段ボール S",
+      unit: "枚",
+      sizeDescription: "320x250x120",
+      currency: "JPY",
+      note: "クラフト",
+    },
+    {
+      id: "pack-2",
+      name: "緩衝材",
+      unit: "m",
+      sizeDescription: "ロール",
+      currency: "JPY",
+      note: "エアキャップ",
+    },
+  ],
+  laborRoles: [
+    { id: "lab-1", name: "裁断", hourlyRate: 1800, currency: "JPY", note: "" },
+    { id: "lab-2", name: "縫製", hourlyRate: 2200, currency: "JPY", note: "" },
+  ],
+  equipments: [
+    {
+      id: "eq-1",
+      name: "工業用ミシン",
+      acquisitionCost: 400000,
+      currency: "JPY",
+      amortizationYears: 5,
+      note: "平ミシン",
+    },
+    {
+      id: "eq-2",
+      name: "裁断機",
+      acquisitionCost: 600000,
+      currency: "JPY",
+      amortizationYears: 5,
+      note: "自動裁断",
+    },
+  ],
+  products: [
+    {
+      id: "prod-1",
+      name: "デイリーミニトート",
+      categoryLargeId: "cat-l-1",
+      categoryMediumId: "cat-m-1",
+      categorySmallId: "cat-s-1",
+      sizes: ["S", "M"],
+      baseManHours: 1.5,
+      defaultElectricityCost: 25,
+      registeredAt: "2024-05-01",
+      options: ["金具変更", "刺繍追加"],
+      expectedProduction: {
+        periodYears: 1,
+        quantity: 3000,
+      },
+      equipmentIds: ["eq-1", "eq-2"],
+    },
+  ],
+  costEntries: {
+    materials: [
+      {
+        id: "mat-cost-1",
+        productId: "prod-1",
+        materialId: "mat-1",
+        description: "本体用",
+        costPerUnit: 350,
+        currency: "JPY",
+      },
+      {
+        id: "mat-cost-2",
+        productId: "prod-1",
+        materialId: "mat-2",
+        description: "持ち手革",
+        costPerUnit: 180,
+        currency: "JPY",
+      },
+    ],
+    packaging: [
+      {
+        id: "pack-cost-1",
+        productId: "prod-1",
+        packagingItemId: "pack-1",
+        quantity: 1,
+        costPerUnit: 80,
+        currency: "JPY",
+      },
+      {
+        id: "pack-cost-2",
+        productId: "prod-1",
+        packagingItemId: "pack-2",
+        quantity: 0.5,
+        costPerUnit: 30,
+        currency: "JPY",
+      },
+    ],
+    labor: [
+      {
+        id: "lab-cost-1",
+        productId: "prod-1",
+        laborRoleId: "lab-1",
+        hours: 0.4,
+        peopleCount: 1,
+      },
+      {
+        id: "lab-cost-2",
+        productId: "prod-1",
+        laborRoleId: "lab-2",
+        hours: 0.8,
+        peopleCount: 1,
+      },
+    ],
+    outsourcing: [
+      {
+        id: "out-cost-1",
+        productId: "prod-1",
+        costPerUnit: 120,
+        currency: "JPY",
+        note: "部分仕上げ外注",
+      },
+    ],
+    development: [
+      {
+        id: "dev-cost-1",
+        productId: "prod-1",
+        prototypeLaborCost: 150000,
+        prototypeMaterialCost: 60000,
+        toolingCost: 40000,
+        amortizationYears: 2,
+      },
+    ],
+    equipmentAllocations: [
+      {
+        id: "eq-alloc-1",
+        productId: "prod-1",
+        equipmentId: "eq-1",
+        allocationRatio: 0.5,
+        annualQuantity: 3000,
+      },
+      {
+        id: "eq-alloc-2",
+        productId: "prod-1",
+        equipmentId: "eq-2",
+        allocationRatio: 0.3,
+        annualQuantity: 3000,
+      },
+    ],
+    logistics: [
+      {
+        id: "log-cost-1",
+        productId: "prod-1",
+        shippingMethod: "宅配便",
+        costPerUnit: 180,
+        currency: "JPY",
+      },
+    ],
+    electricity: [
+      {
+        id: "ele-cost-1",
+        productId: "prod-1",
+        costPerUnit: 25,
+        currency: "JPY",
+      },
+    ],
+  },
+}
+
+export const defaultAppData = sampleAppData
