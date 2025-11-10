@@ -24,8 +24,125 @@ import type {
 
 const currencyOptions = ["JPY", "USD", "EUR"]
 
+const createTempId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).substring(2, 11)
+
+type MaterialCostDraft = {
+  id: string
+  materialId: string
+  usageRatio: number
+  costPerUnit: number
+  currency: string
+  description: string
+}
+
+type PackagingCostDraft = {
+  id: string
+  packagingItemId: string
+  quantity: number
+  costPerUnit: number
+  currency: string
+}
+
+type LaborCostDraft = {
+  id: string
+  laborRoleId: string
+  hours: number
+  peopleCount: number
+  hourlyRateOverride?: number
+}
+
+type OutsourcingCostDraft = {
+  id: string
+  note: string
+  costPerUnit: number
+  currency: string
+}
+
+type DevelopmentCostDraft = {
+  id: string
+  prototypeLaborCost: number
+  prototypeMaterialCost: number
+  toolingCost: number
+  amortizationYears: number
+}
+
+type EquipmentAllocationDraft = {
+  id: string
+  equipmentId: string
+  allocationRatio: number
+  annualQuantity: number
+}
+
+type LogisticsCostDraft = {
+  id: string
+  shippingMethod: string
+  costPerUnit: number
+  currency: string
+}
+
+type ElectricityCostDraft = {
+  id: string
+  costPerUnit: number
+  currency: string
+}
+
 export default function Home() {
   const { data, hydrated, actions } = useAppData()
+
+  const createMaterialDraft = (): MaterialCostDraft => ({
+    id: createTempId(),
+    materialId: data.materials[0]?.id ?? "",
+    usageRatio: 100,
+    costPerUnit: 0,
+    currency: data.materials[0]?.currency ?? "JPY",
+    description: "",
+  })
+
+  const createPackagingDraft = (): PackagingCostDraft => ({
+    id: createTempId(),
+    packagingItemId: data.packagingItems[0]?.id ?? "",
+    quantity: 1,
+    costPerUnit: 0,
+    currency: data.packagingItems[0]?.currency ?? "JPY",
+  })
+
+  const createLaborDraft = (): LaborCostDraft => ({
+    id: createTempId(),
+    laborRoleId: data.laborRoles[0]?.id ?? "",
+    hours: 1,
+    peopleCount: 1,
+  })
+
+  const createOutsourcingDraft = (): OutsourcingCostDraft => ({
+    id: createTempId(),
+    note: "",
+    costPerUnit: 0,
+    currency: "JPY",
+  })
+
+  const createDevelopmentDraft = (): DevelopmentCostDraft => ({
+    id: createTempId(),
+    prototypeLaborCost: 0,
+    prototypeMaterialCost: 0,
+    toolingCost: 0,
+    amortizationYears: 3,
+  })
+
+  const createLogisticsDraft = (): LogisticsCostDraft => ({
+    id: createTempId(),
+    shippingMethod: "",
+    costPerUnit: 0,
+    currency: "JPY",
+  })
+
+  const createElectricityDraft = (): ElectricityCostDraft => ({
+    id: createTempId(),
+    costPerUnit: 0,
+    currency: "JPY",
+  })
 
   const [largeCategory, setLargeCategory] = useState({ name: "", description: "" })
   const [mediumCategory, setMediumCategory] = useState({ name: "", description: "", largeId: "" })
@@ -62,6 +179,34 @@ export default function Home() {
     note: "",
   })
 
+  const [materialDrafts, setMaterialDrafts] = useState<MaterialCostDraft[]>(() => [createMaterialDraft()])
+
+  const [packagingDrafts, setPackagingDrafts] = useState<PackagingCostDraft[]>(() => [createPackagingDraft()])
+
+  const [laborDrafts, setLaborDrafts] = useState<LaborCostDraft[]>(() => [createLaborDraft()])
+
+  const [outsourcingDrafts, setOutsourcingDrafts] = useState<OutsourcingCostDraft[]>(() => [createOutsourcingDraft()])
+
+  const [developmentDrafts, setDevelopmentDrafts] = useState<DevelopmentCostDraft[]>(() => [createDevelopmentDraft()])
+
+  const [equipmentAllocDrafts, setEquipmentAllocDrafts] = useState<EquipmentAllocationDraft[]>([])
+
+  const [logisticsDrafts, setLogisticsDrafts] = useState<LogisticsCostDraft[]>(() => [createLogisticsDraft()])
+
+  const [electricityDrafts, setElectricityDrafts] = useState<ElectricityCostDraft[]>(() => [createElectricityDraft()])
+
+  const addDraft = <T extends { id: string }>(setState: React.Dispatch<React.SetStateAction<T[]>>, draft: T) => {
+    setState((prev) => [...prev, draft])
+  }
+
+  const updateDraft = <T extends { id: string }>(setState: React.Dispatch<React.SetStateAction<T[]>>, id: string, patch: Partial<T>) => {
+    setState((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)))
+  }
+
+  const removeDraft = <T extends { id: string }>(setState: React.Dispatch<React.SetStateAction<T[]>>, id: string) => {
+    setState((prev) => prev.filter((item) => item.id !== id))
+  }
+
   const [productForm, setProductForm] = useState<Omit<Product, "id">>({
     name: "",
     categoryLargeId: "",
@@ -79,64 +224,34 @@ export default function Home() {
     equipmentIds: [],
   })
 
-  const [materialCostForm, setMaterialCostForm] = useState({
-    productId: "",
-    materialId: "",
-    description: "",
-    costPerUnit: 0,
-    currency: "JPY",
-  })
+  const handleToggleEquipment = (equipmentId: string, checked: boolean) => {
+    setProductForm((prev) => {
+      const nextIds = checked
+        ? [...prev.equipmentIds, equipmentId]
+        : prev.equipmentIds.filter((id) => id !== equipmentId)
+      const uniqueIds = checked ? Array.from(new Set(nextIds)) : nextIds
+      return { ...prev, equipmentIds: uniqueIds }
+    })
 
-  const [packagingCostForm, setPackagingCostForm] = useState({
-    productId: "",
-    packagingItemId: "",
-    quantity: 1,
-    costPerUnit: 0,
-    currency: "JPY",
-  })
+    setEquipmentAllocDrafts((prev) => {
+      if (checked) {
+        if (prev.some((draft) => draft.equipmentId === equipmentId)) {
+          return prev
+        }
+        return [
+          ...prev,
+          {
+            id: createTempId(),
+            equipmentId,
+            allocationRatio: 0.5,
+            annualQuantity: productForm.expectedProduction.quantity || 1,
+          },
+        ]
+      }
+      return prev.filter((draft) => draft.equipmentId !== equipmentId)
+    })
+  }
 
-  const [laborCostForm, setLaborCostForm] = useState({
-    productId: "",
-    laborRoleId: "",
-    hours: 1,
-    peopleCount: 1,
-    hourlyRateOverride: "",
-  })
-
-  const [outsourcingForm, setOutsourcingForm] = useState({
-    productId: "",
-    costPerUnit: 0,
-    currency: "JPY",
-    note: "",
-  })
-
-  const [developmentForm, setDevelopmentForm] = useState({
-    productId: "",
-    prototypeLaborCost: 0,
-    prototypeMaterialCost: 0,
-    toolingCost: 0,
-    amortizationYears: 3,
-  })
-
-  const [equipmentAllocationForm, setEquipmentAllocationForm] = useState({
-    productId: "",
-    equipmentId: "",
-    allocationRatio: 1,
-    annualQuantity: 1000,
-  })
-
-  const [logisticsForm, setLogisticsForm] = useState({
-    productId: "",
-    shippingMethod: "宅配便",
-    costPerUnit: 0,
-    currency: "JPY",
-  })
-
-  const [electricityForm, setElectricityForm] = useState({
-    productId: "",
-    costPerUnit: 0,
-    currency: "JPY",
-  })
 
   const productSummaries = useMemo(() => {
     return data.products.map((product) => ({
@@ -156,8 +271,6 @@ export default function Home() {
   const largeOptions = data.categories.large
   const mediumOptions = data.categories.medium.filter((m) => !productForm.categoryLargeId || m.largeId === productForm.categoryLargeId)
   const smallOptions = data.categories.small.filter((s) => !productForm.categoryMediumId || s.mediumId === productForm.categoryMediumId)
-
-  const productOptionsAvailable = data.products.length > 0
 
   return (
     <main className="mx-auto min-h-screen max-w-6xl space-y-8 px-4 py-10">
@@ -567,19 +680,121 @@ export default function Home() {
             </CardHeader>
             <CardContent className="space-y-4">
               <form
-                className="grid gap-4"
+                className="space-y-6"
                 onSubmit={(event) => {
                   event.preventDefault()
                   if (!productForm.name.trim()) return
-                  actions.addProduct({
+                  const newProductId = createTempId()
+                  const electricityUnitCost =
+                    electricityDrafts.find((draft) => Number(draft.costPerUnit) > 0)?.costPerUnit ?? 0
+                  const normalizedProduct = {
                     ...productForm,
                     baseManHours: Number(productForm.baseManHours) || 0,
-                    defaultElectricityCost: Number(productForm.defaultElectricityCost) || 0,
                     expectedProduction: {
                       periodYears: Number(productForm.expectedProduction.periodYears) || 1,
                       quantity: Number(productForm.expectedProduction.quantity) || 1,
                     },
-                  })
+                    defaultElectricityCost: Number(electricityUnitCost) || 0,
+                  }
+                  actions.addProduct({ id: newProductId, ...normalizedProduct })
+
+                  materialDrafts
+                    .filter((draft) => draft.materialId)
+                    .forEach((draft) =>
+                      actions.addMaterialCostEntry({
+                        productId: newProductId,
+                        materialId: draft.materialId,
+                        description: draft.description,
+                        usageRatio: Number(draft.usageRatio) || 0,
+                        costPerUnit: Number(draft.costPerUnit) || 0,
+                        currency: draft.currency,
+                      })
+                    )
+
+                  packagingDrafts
+                    .filter((draft) => draft.packagingItemId)
+                    .forEach((draft) =>
+                      actions.addPackagingCostEntry({
+                        productId: newProductId,
+                        packagingItemId: draft.packagingItemId,
+                        quantity: Number(draft.quantity) || 0,
+                        costPerUnit: Number(draft.costPerUnit) || 0,
+                        currency: draft.currency,
+                      })
+                    )
+
+                  laborDrafts
+                    .filter((draft) => draft.laborRoleId)
+                    .forEach((draft) =>
+                      actions.addLaborCostEntry({
+                        productId: newProductId,
+                        laborRoleId: draft.laborRoleId,
+                        hours: Number(draft.hours) || 0,
+                        peopleCount: Number(draft.peopleCount) || 0,
+                        hourlyRateOverride: draft.hourlyRateOverride,
+                      })
+                    )
+
+                  outsourcingDrafts
+                    .filter((draft) => draft.note.trim() || Number(draft.costPerUnit) > 0)
+                    .forEach((draft) =>
+                      actions.addOutsourcingCostEntry({
+                        productId: newProductId,
+                        costPerUnit: Number(draft.costPerUnit) || 0,
+                        currency: draft.currency,
+                        note: draft.note,
+                      })
+                    )
+
+                  developmentDrafts
+                    .filter(
+                      (draft) =>
+                        Number(draft.prototypeLaborCost) > 0 ||
+                        Number(draft.prototypeMaterialCost) > 0 ||
+                        Number(draft.toolingCost) > 0
+                    )
+                    .forEach((draft) =>
+                      actions.addDevelopmentCostEntry({
+                        productId: newProductId,
+                        prototypeLaborCost: Number(draft.prototypeLaborCost) || 0,
+                        prototypeMaterialCost: Number(draft.prototypeMaterialCost) || 0,
+                        toolingCost: Number(draft.toolingCost) || 0,
+                        amortizationYears: Number(draft.amortizationYears) || 1,
+                      })
+                    )
+
+                  equipmentAllocDrafts
+                    .filter((draft) => draft.equipmentId)
+                    .forEach((draft) =>
+                      actions.addEquipmentAllocation({
+                        productId: newProductId,
+                        equipmentId: draft.equipmentId,
+                        allocationRatio: Number(draft.allocationRatio) || 0,
+                        annualQuantity: Number(draft.annualQuantity) || normalizedProduct.expectedProduction.quantity,
+                      })
+                    )
+
+                  logisticsDrafts
+                    .filter((draft) => draft.shippingMethod.trim() || Number(draft.costPerUnit) > 0)
+                    .forEach((draft) =>
+                      actions.addLogisticsCostEntry({
+                        productId: newProductId,
+                        shippingMethod: draft.shippingMethod,
+                        costPerUnit: Number(draft.costPerUnit) || 0,
+                        currency: draft.currency,
+                      })
+                    )
+
+                  electricityDrafts
+                    .filter((draft) => Number(draft.costPerUnit) > 0)
+                    .forEach((draft) =>
+                      actions.addElectricityCostEntry({
+                        productId: newProductId,
+                        costPerUnit: Number(draft.costPerUnit) || 0,
+                        currency: draft.currency,
+                      })
+                    )
+
                   setProductForm({
                     name: "",
                     categoryLargeId: "",
@@ -593,163 +808,769 @@ export default function Home() {
                     expectedProduction: { periodYears: 1, quantity: 1000 },
                     equipmentIds: [],
                   })
+                  setMaterialDrafts([createMaterialDraft()])
+                  setPackagingDrafts([createPackagingDraft()])
+                  setLaborDrafts([createLaborDraft()])
+                  setOutsourcingDrafts([createOutsourcingDraft()])
+                  setDevelopmentDrafts([createDevelopmentDraft()])
+                  setEquipmentAllocDrafts([])
+                  setLogisticsDrafts([createLogisticsDraft()])
+                  setElectricityDrafts([createElectricityDraft()])
                 }}
               >
-                <Input
-                  placeholder="商品名"
-                  value={productForm.name}
-                  onChange={(event) => setProductForm((prev) => ({ ...prev, name: event.target.value }))}
-                />
-                <div className="grid gap-2 md:grid-cols-3">
-                  <Select
-                    value={productForm.categoryLargeId}
-                    onValueChange={(value) =>
-                      setProductForm((prev) => ({ ...prev, categoryLargeId: value, categoryMediumId: "", categorySmallId: "" }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="大カテゴリ" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {largeOptions.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={productForm.categoryMediumId}
-                    onValueChange={(value) =>
-                      setProductForm((prev) => ({ ...prev, categoryMediumId: value, categorySmallId: "" }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="中カテゴリ" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mediumOptions.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={productForm.categorySmallId}
-                    onValueChange={(value) => setProductForm((prev) => ({ ...prev, categorySmallId: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="小カテゴリ" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {smallOptions.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Textarea
-                  placeholder="サイズ展開 (カンマ区切り)"
-                  value={productForm.sizes.join(", ")}
-                  onChange={(event) =>
-                    setProductForm((prev) => ({ ...prev, sizes: event.target.value.split(",").map((size) => size.trim()).filter(Boolean) }))
-                  }
-                />
-                <Textarea
-                  placeholder="オプションの種類 (例: 金具変更, 刺繍追加)"
-                  value={productForm.options.join(", ")}
-                  onChange={(event) =>
-                    setProductForm((prev) => ({ ...prev, options: event.target.value.split(",").map((option) => option.trim()).filter(Boolean) }))
-                  }
-                />
-                <div className="grid gap-2 md:grid-cols-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">制作工数 (時間)</Label>
-                    <Input
-                      type="number"
-                      placeholder="例: 1.5"
-                      value={productForm.baseManHours}
-                      onChange={(event) => setProductForm((prev) => ({ ...prev, baseManHours: Number(event.target.value) }))}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">電気代 (1個あたり)</Label>
-                    <Input
-                      type="number"
-                      placeholder="例: 25"
-                      value={productForm.defaultElectricityCost}
-                      onChange={(event) => setProductForm((prev) => ({ ...prev, defaultElectricityCost: Number(event.target.value) }))}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">登録日</Label>
-                    <Input
-                      type="date"
-                      value={productForm.registeredAt}
-                      onChange={(event) => setProductForm((prev) => ({ ...prev, registeredAt: event.target.value }))}
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-2 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">想定生産期間 (年)</Label>
-                    <Input
-                      type="number"
-                      placeholder="例: 1"
-                      value={productForm.expectedProduction.periodYears}
-                      onChange={(event) =>
-                        setProductForm((prev) => ({
-                          ...prev,
-                          expectedProduction: {
-                            ...prev.expectedProduction,
-                            periodYears: Number(event.target.value),
-                          },
-                        }))
+                <div className="grid gap-4">
+                  <Input
+                    placeholder="商品名"
+                    value={productForm.name}
+                    onChange={(event) => setProductForm((prev) => ({ ...prev, name: event.target.value }))}
+                  />
+                  <div className="grid gap-2 md:grid-cols-3">
+                    <Select
+                      value={productForm.categoryLargeId}
+                      onValueChange={(value) =>
+                        setProductForm((prev) => ({ ...prev, categoryLargeId: value, categoryMediumId: "", categorySmallId: "" }))
                       }
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">期間内生産予定数</Label>
-                    <Input
-                      type="number"
-                      placeholder="例: 1000"
-                      value={productForm.expectedProduction.quantity}
-                      onChange={(event) =>
-                        setProductForm((prev) => ({
-                          ...prev,
-                          expectedProduction: {
-                            ...prev.expectedProduction,
-                            quantity: Number(event.target.value),
-                          },
-                        }))
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="大カテゴリ" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {largeOptions.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={productForm.categoryMediumId}
+                      onValueChange={(value) =>
+                        setProductForm((prev) => ({ ...prev, categoryMediumId: value, categorySmallId: "" }))
                       }
-                    />
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="中カテゴリ" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mediumOptions.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={productForm.categorySmallId}
+                      onValueChange={(value) => setProductForm((prev) => ({ ...prev, categorySmallId: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="小カテゴリ" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {smallOptions.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>使用する設備 (複数選択)</Label>
-                  <div className="flex flex-wrap gap-2">
+                  <Textarea
+                    placeholder="サイズ展開 (カンマ区切り)"
+                    value={productForm.sizes.join(", ")}
+                    onChange={(event) =>
+                      setProductForm((prev) => ({
+                        ...prev,
+                        sizes: event.target.value
+                          .split(",")
+                          .map((size) => size.trim())
+                          .filter(Boolean),
+                      }))
+                    }
+                  />
+                  <Textarea
+                    placeholder="オプションの種類 (例: 金具変更, 刺繍追加)"
+                    value={productForm.options.join(", ")}
+                    onChange={(event) =>
+                      setProductForm((prev) => ({
+                        ...prev,
+                        options: event.target.value
+                          .split(",")
+                          .map((option) => option.trim())
+                          .filter(Boolean),
+                      }))
+                    }
+                  />
+                  <div className="grid gap-2 md:grid-cols-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">制作工数 (時間)</Label>
+                      <Input
+                        type="number"
+                        placeholder="例: 1.5"
+                        value={productForm.baseManHours}
+                        onChange={(event) => setProductForm((prev) => ({ ...prev, baseManHours: Number(event.target.value) }))}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">登録日</Label>
+                      <Input
+                        type="date"
+                        value={productForm.registeredAt}
+                        onChange={(event) => setProductForm((prev) => ({ ...prev, registeredAt: event.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">想定生産期間 (年)</Label>
+                      <Input
+                        type="number"
+                        placeholder="例: 1"
+                        value={productForm.expectedProduction.periodYears}
+                        onChange={(event) =>
+                          setProductForm((prev) => ({
+                            ...prev,
+                            expectedProduction: {
+                              ...prev.expectedProduction,
+                              periodYears: Number(event.target.value),
+                            },
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">期間内生産予定数</Label>
+                      <Input
+                        type="number"
+                        placeholder="例: 1000"
+                        value={productForm.expectedProduction.quantity}
+                        onChange={(event) =>
+                          setProductForm((prev) => ({
+                            ...prev,
+                            expectedProduction: {
+                              ...prev.expectedProduction,
+                              quantity: Number(event.target.value),
+                            },
+                          }))
+                        }
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">使用する設備 (複数選択)</Label>
+                      <div className="flex flex-wrap gap-2 rounded-md border p-2">
                     {data.equipments.map((equipment) => (
                       <label key={equipment.id} className="flex items-center gap-2 text-sm">
                         <input
                           type="checkbox"
                           checked={productForm.equipmentIds.includes(equipment.id)}
-                          onChange={(event) => {
-                            const next = event.target.checked
-                              ? [...productForm.equipmentIds, equipment.id]
-                              : productForm.equipmentIds.filter((id) => id !== equipment.id)
-                            setProductForm((prev) => ({ ...prev, equipmentIds: next }))
-                          }}
+                          onChange={(event) => handleToggleEquipment(equipment.id, event.target.checked)}
                         />
                         {equipment.name}
                       </label>
                     ))}
-                    {!data.equipments.length && <p className="text-xs text-muted-foreground">設備マスタを登録すると選択できます。</p>}
+                        {!data.equipments.length && (
+                          <p className="text-xs text-muted-foreground">設備マスタを登録すると選択できます。</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-lg font-semibold">原価入力 (商品登録内)</p>
+                    <p className="text-sm text-muted-foreground">
+                      材料・梱包・人件費などをここで入力すると、原価確認タブには参照専用で反映されます。
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <SectionHeader
+                      title="材料費"
+                      description="材料マスタから選択し、使用率や単価を設定"
+                      actionLabel="行を追加"
+                      onAction={() => addDraft(setMaterialDrafts, createMaterialDraft())}
+                      actionDisabled={data.materials.length === 0}
+                    />
+                    <HintList
+                      items={[
+                        "材料マスタ: 事前登録した素材を選択",
+                        "使用率(%): 仕入れたロットのうち1個あたりで使う割合",
+                        "単価: ロット/単位あたりの購入価格",
+                        "用途: 本体用・持ち手用などのメモ",
+                      ]}
+                    />
+                    {data.materials.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">材料マスタを登録すると入力できます。</p>
+                    ) : materialDrafts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">明細を追加してください。</p>
+                    ) : (
+                      materialDrafts.map((draft) => (
+                        <DraftCard key={draft.id} onRemove={() => removeDraft(setMaterialDrafts, draft.id)}>
+                          <div className="grid gap-2 md:grid-cols-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">材料</Label>
+                              <Select
+                                value={draft.materialId}
+                                onValueChange={(value) => updateDraft(setMaterialDrafts, draft.id, { materialId: value })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="材料" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {data.materials.map((material) => (
+                                    <SelectItem key={material.id} value={material.id}>
+                                      {material.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">使用率 (%)</Label>
+                              <Input
+                                type="number"
+                                placeholder="例: 75"
+                                value={draft.usageRatio}
+                                onChange={(event) =>
+                                  updateDraft(setMaterialDrafts, draft.id, { usageRatio: Number(event.target.value) })
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="grid gap-2 md:grid-cols-3">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">単価</Label>
+                              <Input
+                                type="number"
+                                placeholder="例: 320"
+                                value={draft.costPerUnit}
+                                onChange={(event) =>
+                                  updateDraft(setMaterialDrafts, draft.id, { costPerUnit: Number(event.target.value) })
+                                }
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">通貨</Label>
+                              <Select
+                                value={draft.currency}
+                                onValueChange={(value) => updateDraft(setMaterialDrafts, draft.id, { currency: value })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="通貨" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {currencyOptions.map((currency) => (
+                                    <SelectItem key={currency} value={currency}>
+                                      {currency}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">用途 (任意)</Label>
+                              <Input
+                                placeholder="例: 本体用"
+                                value={draft.description}
+                                onChange={(event) =>
+                                  updateDraft(setMaterialDrafts, draft.id, { description: event.target.value })
+                                }
+                              />
+                            </div>
+                          </div>
+                        </DraftCard>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <SectionHeader
+                      title="梱包材費"
+                      description="梱包材マスタを選択し、使用数量を設定"
+                      actionLabel="行を追加"
+                      onAction={() => addDraft(setPackagingDrafts, createPackagingDraft())}
+                      actionDisabled={data.packagingItems.length === 0}
+                    />
+                    <HintList
+                      items={[
+                        "梱包材マスタ: 箱・袋などの品目",
+                        "数量: 1商品あたりに使う点数や長さ",
+                        "単価: 1点あたりの調達価格",
+                      ]}
+                    />
+                    {data.packagingItems.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">梱包材マスタを登録すると入力できます。</p>
+                    ) : packagingDrafts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">明細を追加してください。</p>
+                    ) : (
+                      packagingDrafts.map((draft) => (
+                        <DraftCard key={draft.id} onRemove={() => removeDraft(setPackagingDrafts, draft.id)}>
+                          <div className="grid gap-2 md:grid-cols-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">梱包材</Label>
+                              <Select
+                                value={draft.packagingItemId}
+                                onValueChange={(value) => updateDraft(setPackagingDrafts, draft.id, { packagingItemId: value })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="梱包材" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {data.packagingItems.map((item) => (
+                                    <SelectItem key={item.id} value={item.id}>
+                                      {item.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">数量</Label>
+                              <Input
+                                type="number"
+                                placeholder="例: 1"
+                                value={draft.quantity}
+                                onChange={(event) =>
+                                  updateDraft(setPackagingDrafts, draft.id, { quantity: Number(event.target.value) })
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="grid gap-2 md:grid-cols-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">単価</Label>
+                              <Input
+                                type="number"
+                                placeholder="例: 80"
+                                value={draft.costPerUnit}
+                                onChange={(event) =>
+                                  updateDraft(setPackagingDrafts, draft.id, { costPerUnit: Number(event.target.value) })
+                                }
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">通貨</Label>
+                              <Select
+                                value={draft.currency}
+                                onValueChange={(value) => updateDraft(setPackagingDrafts, draft.id, { currency: value })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="通貨" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {currencyOptions.map((currency) => (
+                                    <SelectItem key={currency} value={currency}>
+                                      {currency}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </DraftCard>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <SectionHeader
+                      title="人件費"
+                      description="作業カテゴリごとに工数と人数を設定"
+                      actionLabel="行を追加"
+                      onAction={() => addDraft(setLaborDrafts, createLaborDraft())}
+                      actionDisabled={data.laborRoles.length === 0}
+                    />
+                    <HintList
+                      items={[
+                        "作業カテゴリ: 裁断・縫製などの役割",
+                        "工数: 1商品あたりにかかる時間 (時間)",
+                        "人数: 同時に作業する人数",
+                        "時給(任意): マスタの時給を上書きしたい場合に入力",
+                      ]}
+                    />
+                    {data.laborRoles.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">人件費マスタを登録すると入力できます。</p>
+                    ) : laborDrafts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">明細を追加してください。</p>
+                    ) : (
+                      laborDrafts.map((draft) => {
+                        const selectedRole = data.laborRoles.find((role) => role.id === draft.laborRoleId)
+                        return (
+                          <DraftCard key={draft.id} onRemove={() => removeDraft(setLaborDrafts, draft.id)}>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">作業カテゴリ</Label>
+                              <Select
+                                value={draft.laborRoleId}
+                                onValueChange={(value) => updateDraft(setLaborDrafts, draft.id, { laborRoleId: value })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="作業カテゴリ" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {data.laborRoles.map((role) => (
+                                    <SelectItem key={role.id} value={role.id}>
+                                      {role.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {selectedRole && (
+                                <p className="text-xs text-muted-foreground">
+                                  標準時給: {formatCurrency(selectedRole.hourlyRate, selectedRole.currency)}
+                                </p>
+                              )}
+                            </div>
+                            <div className="grid gap-2 md:grid-cols-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">工数 (時間)</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="例: 0.5"
+                                  value={draft.hours}
+                                  onChange={(event) => updateDraft(setLaborDrafts, draft.id, { hours: Number(event.target.value) })}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">人数</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="例: 1"
+                                  value={draft.peopleCount}
+                                  onChange={(event) =>
+                                    updateDraft(setLaborDrafts, draft.id, { peopleCount: Number(event.target.value) })
+                                  }
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">時給 (任意)</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="例: 2000"
+                                  value={draft.hourlyRateOverride ?? ""}
+                                  onChange={(event) =>
+                                    updateDraft(setLaborDrafts, draft.id, {
+                                      hourlyRateOverride:
+                                        event.target.value === "" ? undefined : Number(event.target.value),
+                                    })
+                                  }
+                                />
+                              </div>
+                            </div>
+                          </DraftCard>
+                        )
+                      })
+                    )}
+                  </div>
+
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <SectionHeader
+                      title="外注費"
+                      description="商品1つあたりの外注コスト"
+                      actionLabel="行を追加"
+                      onAction={() => addDraft(setOutsourcingDrafts, createOutsourcingDraft())}
+                    />
+                    <HintList
+                      items={[
+                        "外注内容: 作業内容や委託範囲をメモ",
+                        "単価: 1商品あたりに支払う費用",
+                        "通貨: 支払い通貨 (JPY/USD など)",
+                      ]}
+                    />
+                    {outsourcingDrafts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">明細を追加してください。</p>
+                    ) : (
+                      outsourcingDrafts.map((draft) => (
+                        <DraftCard key={draft.id} onRemove={() => removeDraft(setOutsourcingDrafts, draft.id)}>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">外注内容</Label>
+                            <Textarea
+                              placeholder="例: 仕上げ縫製を協力工場へ委託"
+                              value={draft.note}
+                              onChange={(event) => updateDraft(setOutsourcingDrafts, draft.id, { note: event.target.value })}
+                            />
+                          </div>
+                          <div className="grid gap-2 md:grid-cols-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">単価</Label>
+                              <Input
+                                type="number"
+                                placeholder="例: 120"
+                                value={draft.costPerUnit}
+                                onChange={(event) =>
+                                  updateDraft(setOutsourcingDrafts, draft.id, { costPerUnit: Number(event.target.value) })
+                                }
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">通貨</Label>
+                              <Select
+                                value={draft.currency}
+                                onValueChange={(value) => updateDraft(setOutsourcingDrafts, draft.id, { currency: value })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="通貨" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {currencyOptions.map((currency) => (
+                                    <SelectItem key={currency} value={currency}>
+                                      {currency}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </DraftCard>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <SectionHeader
+                      title="開発コスト"
+                      description="試作工数・材料費・道具費を入力"
+                      actionLabel="行を追加"
+                      onAction={() => addDraft(setDevelopmentDrafts, createDevelopmentDraft())}
+                    />
+                    <HintList
+                      items={[
+                        "試作工数コスト: 試作にかかった人件費トータル",
+                        "試作用材料費: 試作で使った素材費",
+                        "道具費: 型や治具など一度だけ買うもの",
+                        "償却年数: 何年で割って原価化するか",
+                      ]}
+                    />
+                    {developmentDrafts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">明細を追加してください。</p>
+                    ) : (
+                      developmentDrafts.map((draft) => (
+                        <DraftCard key={draft.id} onRemove={() => removeDraft(setDevelopmentDrafts, draft.id)}>
+                          <div className="grid gap-2 md:grid-cols-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">試作工数コスト</Label>
+                              <Input
+                                type="number"
+                                placeholder="例: 150000"
+                                value={draft.prototypeLaborCost}
+                                onChange={(event) =>
+                                  updateDraft(setDevelopmentDrafts, draft.id, { prototypeLaborCost: Number(event.target.value) })
+                                }
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">試作用材料費</Label>
+                              <Input
+                                type="number"
+                                placeholder="例: 60000"
+                                value={draft.prototypeMaterialCost}
+                                onChange={(event) =>
+                                  updateDraft(setDevelopmentDrafts, draft.id, { prototypeMaterialCost: Number(event.target.value) })
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div className="grid gap-2 md:grid-cols-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">道具費</Label>
+                              <Input
+                                type="number"
+                                placeholder="例: 40000"
+                                value={draft.toolingCost}
+                                onChange={(event) =>
+                                  updateDraft(setDevelopmentDrafts, draft.id, { toolingCost: Number(event.target.value) })
+                                }
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">償却年数</Label>
+                              <Input
+                                type="number"
+                                placeholder="例: 2"
+                                value={draft.amortizationYears}
+                                onChange={(event) =>
+                                  updateDraft(setDevelopmentDrafts, draft.id, { amortizationYears: Number(event.target.value) })
+                                }
+                              />
+                            </div>
+                          </div>
+                        </DraftCard>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <SectionHeader
+                      title="設備配賦"
+                      description="商品で利用する設備の配賦設定"
+                    />
+                    <HintList
+                      items={[
+                        "利用率: 設備稼働のうち当該商品の占める割合 (0〜1)",
+                        "年間生産数: 設備をこの商品に使う年間数量",
+                      ]}
+                    />
+                    {productForm.equipmentIds.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">設備を選択すると配賦割合を入力できます。</p>
+                    ) : (
+                      equipmentAllocDrafts.map((draft) => {
+                        const equipment = data.equipments.find((item) => item.id === draft.equipmentId)
+                        if (!equipment) return null
+                        return (
+                          <DraftCard key={draft.id} hideRemove>
+                            <p className="text-sm font-medium">{equipment.name}</p>
+                            <div className="grid gap-2 md:grid-cols-2">
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">利用率 (0-1)</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="例: 0.5"
+                                  value={draft.allocationRatio}
+                                  onChange={(event) =>
+                                    updateDraft(setEquipmentAllocDrafts, draft.id, {
+                                      allocationRatio: Number(event.target.value),
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">年間生産数</Label>
+                                <Input
+                                  type="number"
+                                  placeholder="例: 3000"
+                                  value={draft.annualQuantity}
+                                  onChange={(event) =>
+                                    updateDraft(setEquipmentAllocDrafts, draft.id, {
+                                      annualQuantity: Number(event.target.value),
+                                    })
+                                  }
+                                />
+                              </div>
+                            </div>
+                          </DraftCard>
+                        )
+                      })
+                    )}
+                  </div>
+
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <SectionHeader
+                      title="物流・配送費"
+                      description="配送方法と単価"
+                      actionLabel="行を追加"
+                      onAction={() => addDraft(setLogisticsDrafts, createLogisticsDraft())}
+                    />
+                    <HintList
+                      items={[
+                        "配送方法: 宅配便・定形外などの区分",
+                        "単価: 1商品あたりの発送コスト",
+                        "通貨: 支払い通貨",
+                      ]}
+                    />
+                    {logisticsDrafts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">明細を追加してください。</p>
+                    ) : (
+                      logisticsDrafts.map((draft) => (
+                        <DraftCard key={draft.id} onRemove={() => removeDraft(setLogisticsDrafts, draft.id)}>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">配送方法</Label>
+                            <Input
+                              placeholder="例: 宅配便"
+                              value={draft.shippingMethod}
+                              onChange={(event) => updateDraft(setLogisticsDrafts, draft.id, { shippingMethod: event.target.value })}
+                            />
+                          </div>
+                          <div className="grid gap-2 md:grid-cols-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">単価</Label>
+                              <Input
+                                type="number"
+                                placeholder="例: 180"
+                                value={draft.costPerUnit}
+                                onChange={(event) =>
+                                  updateDraft(setLogisticsDrafts, draft.id, { costPerUnit: Number(event.target.value) })
+                                }
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">通貨</Label>
+                              <Select
+                                value={draft.currency}
+                                onValueChange={(value) => updateDraft(setLogisticsDrafts, draft.id, { currency: value })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="通貨" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {currencyOptions.map((currency) => (
+                                    <SelectItem key={currency} value={currency}>
+                                      {currency}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </DraftCard>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="space-y-3 rounded-lg border p-4">
+                    <SectionHeader
+                      title="電気代"
+                      description="1個あたりの電力コスト"
+                      actionLabel="行を追加"
+                      onAction={() => addDraft(setElectricityDrafts, createElectricityDraft())}
+                    />
+                    <HintList
+                      items={[
+                        "単価: 1商品を作る際にかかる電気料金",
+                        "通貨: 支払い通貨",
+                      ]}
+                    />
+                    {electricityDrafts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">明細を追加してください。</p>
+                    ) : (
+                      electricityDrafts.map((draft) => (
+                        <DraftCard key={draft.id} onRemove={() => removeDraft(setElectricityDrafts, draft.id)}>
+                          <div className="grid gap-2 md:grid-cols-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">単価</Label>
+                              <Input
+                                type="number"
+                                placeholder="例: 25"
+                                value={draft.costPerUnit}
+                                onChange={(event) =>
+                                  updateDraft(setElectricityDrafts, draft.id, { costPerUnit: Number(event.target.value) })
+                                }
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">通貨</Label>
+                              <Select
+                                value={draft.currency}
+                                onValueChange={(value) => updateDraft(setElectricityDrafts, draft.id, { currency: value })}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="通貨" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {currencyOptions.map((currency) => (
+                                    <SelectItem key={currency} value={currency}>
+                                      {currency}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </DraftCard>
+                      ))
+                    )}
+                  </div>
+                </div>
+
                 <Button type="submit" className="w-fit">
                   商品を登録
                 </Button>
@@ -808,383 +1629,142 @@ export default function Home() {
               )}
             </CardContent>
           </Card>
+
         </TabsContent>
 
         <TabsContent value="cost" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <CostCard
-              title="材料費入力"
-              description="商品×材料ごとの単価を任意で登録します。"
-              disabled={!productOptionsAvailable || data.materials.length === 0}
-            >
-              <form
-                className="grid gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  if (!materialCostForm.productId || !materialCostForm.materialId) return
-                  actions.addMaterialCostEntry({
-                    ...materialCostForm,
-                    costPerUnit: Number(materialCostForm.costPerUnit) || 0,
-                  })
-                  setMaterialCostForm({ productId: "", materialId: "", description: "", costPerUnit: 0, currency: "JPY" })
-                }}
-              >
-                <ProductSelect value={materialCostForm.productId} onChange={(value) => setMaterialCostForm((prev) => ({ ...prev, productId: value }))} products={data.products} />
-                <Select value={materialCostForm.materialId} onValueChange={(value) => setMaterialCostForm((prev) => ({ ...prev, materialId: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="材料" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {data.materials.map((material) => (
-                      <SelectItem key={material.id} value={material.id}>
-                        {material.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  type="number"
-                  placeholder="コスト (1個あたり)"
-                  value={materialCostForm.costPerUnit}
-                  onChange={(event) => setMaterialCostForm((prev) => ({ ...prev, costPerUnit: Number(event.target.value) }))}
-                />
-                <Textarea
-                  placeholder="使用メモ"
-                  value={materialCostForm.description}
-                  onChange={(event) => setMaterialCostForm((prev) => ({ ...prev, description: event.target.value }))}
-                />
-                <Button type="submit" size="sm" disabled={!productOptionsAvailable || !data.materials.length}>
-                  登録
-                </Button>
-              </form>
-            </CostCard>
+          <Card>
+            <CardHeader>
+              <CardTitle>原価確認タブ</CardTitle>
+              <CardDescription>商品登録フォームで入力したコスト明細の参照専用ビュー</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                追加入力や修正は商品タブで行い、このタブではカテゴリ別の合計値のみを確認します。
+              </p>
+            </CardContent>
+          </Card>
 
-            <CostCard title="梱包材費" description="登録済み梱包材と使用数量でコストを積み上げます。" disabled={!productOptionsAvailable || !data.packagingItems.length}>
-              <form
-                className="grid gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  if (!packagingCostForm.productId || !packagingCostForm.packagingItemId) return
-                  actions.addPackagingCostEntry({
-                    ...packagingCostForm,
-                    quantity: Number(packagingCostForm.quantity) || 0,
-                    costPerUnit: Number(packagingCostForm.costPerUnit) || 0,
-                  })
-                  setPackagingCostForm({ productId: "", packagingItemId: "", quantity: 1, costPerUnit: 0, currency: "JPY" })
-                }}
-              >
-                <ProductSelect value={packagingCostForm.productId} onChange={(value) => setPackagingCostForm((prev) => ({ ...prev, productId: value }))} products={data.products} />
-                <Select value={packagingCostForm.packagingItemId} onValueChange={(value) => setPackagingCostForm((prev) => ({ ...prev, packagingItemId: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="梱包材" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {data.packagingItems.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    type="number"
-                    placeholder="使用数量"
-                    value={packagingCostForm.quantity}
-                    onChange={(event) => setPackagingCostForm((prev) => ({ ...prev, quantity: Number(event.target.value) }))}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="単価"
-                    value={packagingCostForm.costPerUnit}
-                    onChange={(event) => setPackagingCostForm((prev) => ({ ...prev, costPerUnit: Number(event.target.value) }))}
-                  />
-                </div>
-                <Button type="submit" size="sm" disabled={!productOptionsAvailable || !data.packagingItems.length}>
-                  登録
-                </Button>
-              </form>
-            </CostCard>
+          <div className="grid gap-6 md:grid-cols-2">
+            <CostDisplay
+              title="材料費"
+              description="商品に紐づく材料単価"
+              rows={data.costEntries.materials.map((entry) => {
+                const productName = data.products.find((product) => product.id === entry.productId)?.name ?? "未設定"
+                const materialName = data.materials.find((material) => material.id === entry.materialId)?.name ?? "-"
+                return {
+                  product: productName,
+                  detail: `${materialName} ${entry.description ? `(${entry.description})` : ""}`,
+                  amount: formatCurrency(entry.costPerUnit, entry.currency),
+                }
+              })}
+            />
+            <CostDisplay
+              title="梱包材費"
+              description="梱包材の使用数量"
+              rows={data.costEntries.packaging.map((entry) => {
+                const productName = data.products.find((product) => product.id === entry.productId)?.name ?? "未設定"
+                const itemName = data.packagingItems.find((item) => item.id === entry.packagingItemId)?.name ?? "-"
+                return {
+                  product: productName,
+                  detail: `${itemName} × ${entry.quantity}`,
+                  amount: formatCurrency(entry.quantity * entry.costPerUnit, entry.currency),
+                }
+              })}
+            />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <CostCard title="人件費" description="工数と人数から算出します。" disabled={!productOptionsAvailable || !data.laborRoles.length}>
-              <form
-                className="grid gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  if (!laborCostForm.productId || !laborCostForm.laborRoleId) return
-                  actions.addLaborCostEntry({
-                    ...laborCostForm,
-                    hours: Number(laborCostForm.hours) || 0,
-                    peopleCount: Number(laborCostForm.peopleCount) || 0,
-                    hourlyRateOverride: laborCostForm.hourlyRateOverride
-                      ? Number(laborCostForm.hourlyRateOverride)
-                      : undefined,
-                  })
-                  setLaborCostForm({ productId: "", laborRoleId: "", hours: 1, peopleCount: 1, hourlyRateOverride: "" })
-                }}
-              >
-                <ProductSelect value={laborCostForm.productId} onChange={(value) => setLaborCostForm((prev) => ({ ...prev, productId: value }))} products={data.products} />
-                <Select value={laborCostForm.laborRoleId} onValueChange={(value) => setLaborCostForm((prev) => ({ ...prev, laborRoleId: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="作業カテゴリ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {data.laborRoles.map((role) => (
-                      <SelectItem key={role.id} value={role.id}>
-                        {role.name} ({formatCurrency(role.hourlyRate, role.currency)})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="grid grid-cols-3 gap-2">
-                  <Input
-                    type="number"
-                    placeholder="工数"
-                    value={laborCostForm.hours}
-                    onChange={(event) => setLaborCostForm((prev) => ({ ...prev, hours: Number(event.target.value) }))}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="人数"
-                    value={laborCostForm.peopleCount}
-                    onChange={(event) => setLaborCostForm((prev) => ({ ...prev, peopleCount: Number(event.target.value) }))}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="時給(任意)"
-                    value={laborCostForm.hourlyRateOverride}
-                    onChange={(event) => setLaborCostForm((prev) => ({ ...prev, hourlyRateOverride: event.target.value }))}
-                  />
-                </div>
-                <Button type="submit" size="sm" disabled={!productOptionsAvailable || !data.laborRoles.length}>
-                  登録
-                </Button>
-              </form>
-            </CostCard>
-
-            <CostCard title="外注費" description="1個あたりの外注費用を入力"> 
-              <form
-                className="grid gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  if (!outsourcingForm.productId) return
-                  actions.addOutsourcingCostEntry({
-                    ...outsourcingForm,
-                    costPerUnit: Number(outsourcingForm.costPerUnit) || 0,
-                  })
-                  setOutsourcingForm({ productId: "", costPerUnit: 0, currency: "JPY", note: "" })
-                }}
-              >
-                <ProductSelect value={outsourcingForm.productId} onChange={(value) => setOutsourcingForm((prev) => ({ ...prev, productId: value }))} products={data.products} />
-                <Input
-                  type="number"
-                  placeholder="コスト"
-                  value={outsourcingForm.costPerUnit}
-                  onChange={(event) => setOutsourcingForm((prev) => ({ ...prev, costPerUnit: Number(event.target.value) }))}
-                />
-                <Select value={outsourcingForm.currency} onValueChange={(value) => setOutsourcingForm((prev) => ({ ...prev, currency: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="通貨" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currencyOptions.map((currency) => (
-                      <SelectItem key={currency} value={currency}>
-                        {currency}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Textarea
-                  placeholder="支払い条件など"
-                  value={outsourcingForm.note}
-                  onChange={(event) => setOutsourcingForm((prev) => ({ ...prev, note: event.target.value }))}
-                />
-                <Button type="submit" size="sm" disabled={!productOptionsAvailable}>
-                  登録
-                </Button>
-              </form>
-            </CostCard>
+            <CostDisplay
+              title="人件費"
+              description="作業カテゴリごとの工数"
+              rows={data.costEntries.labor.map((entry) => {
+                const productName = data.products.find((product) => product.id === entry.productId)?.name ?? "未設定"
+                const role = data.laborRoles.find((labor) => labor.id === entry.laborRoleId)
+                const hourlyRate = entry.hourlyRateOverride ?? role?.hourlyRate ?? 0
+                const currency = role?.currency ?? "JPY"
+                return {
+                  product: productName,
+                  detail: `${role?.name ?? "-"} / ${entry.hours}h × ${entry.peopleCount}人`,
+                  amount: formatCurrency(hourlyRate * entry.hours * entry.peopleCount, currency),
+                }
+              })}
+            />
+            <CostDisplay
+              title="外注費"
+              description="委託費用"
+              rows={data.costEntries.outsourcing.map((entry) => {
+                const productName = data.products.find((product) => product.id === entry.productId)?.name ?? "未設定"
+                return {
+                  product: productName,
+                  detail: entry.note || "-",
+                  amount: formatCurrency(entry.costPerUnit, entry.currency),
+                }
+              })}
+            />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <CostCard title="開発コスト" description="試作費用を期間と生産数で割り戻します" disabled={!productOptionsAvailable}>
-              <form
-                className="grid gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  if (!developmentForm.productId) return
-                  actions.addDevelopmentCostEntry({
-                    ...developmentForm,
-                    prototypeLaborCost: Number(developmentForm.prototypeLaborCost) || 0,
-                    prototypeMaterialCost: Number(developmentForm.prototypeMaterialCost) || 0,
-                    toolingCost: Number(developmentForm.toolingCost) || 0,
-                    amortizationYears: Number(developmentForm.amortizationYears) || 1,
-                  })
-                  setDevelopmentForm({ productId: "", prototypeLaborCost: 0, prototypeMaterialCost: 0, toolingCost: 0, amortizationYears: 3 })
-                }}
-              >
-                <ProductSelect value={developmentForm.productId} onChange={(value) => setDevelopmentForm((prev) => ({ ...prev, productId: value }))} products={data.products} />
-                <Input
-                  type="number"
-                  placeholder="試作工数コスト"
-                  value={developmentForm.prototypeLaborCost}
-                  onChange={(event) => setDevelopmentForm((prev) => ({ ...prev, prototypeLaborCost: Number(event.target.value) }))}
-                />
-                <Input
-                  type="number"
-                  placeholder="試作用材料費"
-                  value={developmentForm.prototypeMaterialCost}
-                  onChange={(event) => setDevelopmentForm((prev) => ({ ...prev, prototypeMaterialCost: Number(event.target.value) }))}
-                />
-                <Input
-                  type="number"
-                  placeholder="道具費"
-                  value={developmentForm.toolingCost}
-                  onChange={(event) => setDevelopmentForm((prev) => ({ ...prev, toolingCost: Number(event.target.value) }))}
-                />
-                <Input
-                  type="number"
-                  placeholder="償却年数"
-                  value={developmentForm.amortizationYears}
-                  onChange={(event) => setDevelopmentForm((prev) => ({ ...prev, amortizationYears: Number(event.target.value) }))}
-                />
-                <Button type="submit" size="sm" disabled={!productOptionsAvailable}>
-                  登録
-                </Button>
-              </form>
-            </CostCard>
-
-            <CostCard title="設備配賦" description="設備マスタを年間数量で配賦" disabled={!productOptionsAvailable || !data.equipments.length}>
-              <form
-                className="grid gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  if (!equipmentAllocationForm.productId || !equipmentAllocationForm.equipmentId) return
-                  actions.addEquipmentAllocation({
-                    ...equipmentAllocationForm,
-                    allocationRatio: Number(equipmentAllocationForm.allocationRatio) || 0,
-                    annualQuantity: Number(equipmentAllocationForm.annualQuantity) || 1,
-                  })
-                  setEquipmentAllocationForm({ productId: "", equipmentId: "", allocationRatio: 1, annualQuantity: 1000 })
-                }}
-              >
-                <ProductSelect value={equipmentAllocationForm.productId} onChange={(value) => setEquipmentAllocationForm((prev) => ({ ...prev, productId: value }))} products={data.products} />
-                <Select value={equipmentAllocationForm.equipmentId} onValueChange={(value) => setEquipmentAllocationForm((prev) => ({ ...prev, equipmentId: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="設備" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {data.equipments.map((equipment) => (
-                      <SelectItem key={equipment.id} value={equipment.id}>
-                        {equipment.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    type="number"
-                    placeholder="利用割合"
-                    value={equipmentAllocationForm.allocationRatio}
-                    onChange={(event) => setEquipmentAllocationForm((prev) => ({ ...prev, allocationRatio: Number(event.target.value) }))}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="年間数量"
-                    value={equipmentAllocationForm.annualQuantity}
-                    onChange={(event) => setEquipmentAllocationForm((prev) => ({ ...prev, annualQuantity: Number(event.target.value) }))}
-                  />
-                </div>
-                <Button type="submit" size="sm" disabled={!productOptionsAvailable || !data.equipments.length}>
-                  登録
-                </Button>
-              </form>
-            </CostCard>
+            <CostDisplay
+              title="開発コスト"
+              description="試作/道具費の償却"
+              rows={data.costEntries.development.map((entry) => {
+                const product = data.products.find((item) => item.id === entry.productId)
+                const quantity = product?.expectedProduction.quantity || 1
+                const total = entry.prototypeLaborCost + entry.prototypeMaterialCost + entry.toolingCost
+                const amortized = total / Math.max(entry.amortizationYears || 1, 1)
+                return {
+                  product: product?.name ?? "未設定",
+                  detail: `${entry.amortizationYears}年 / ${quantity}個`,
+                  amount: formatCurrency(amortized / Math.max(quantity, 1)),
+                }
+              })}
+            />
+            <CostDisplay
+              title="設備配賦"
+              description="設備利用割合"
+              rows={data.costEntries.equipmentAllocations.map((entry) => {
+                const product = data.products.find((item) => item.id === entry.productId)
+                const equipment = data.equipments.find((item) => item.id === entry.equipmentId)
+                if (!equipment) {
+                  return { product: product?.name ?? "未設定", detail: "-", amount: formatCurrency(0) }
+                }
+                const annualCost = equipment.acquisitionCost / Math.max(equipment.amortizationYears || 1, 1)
+                const unitCost = (annualCost * entry.allocationRatio) / Math.max(entry.annualQuantity || 1, 1)
+                return {
+                  product: product?.name ?? "未設定",
+                  detail: `${equipment.name} / 利用率 ${Math.round(entry.allocationRatio * 100)}%`,
+                  amount: formatCurrency(unitCost, equipment.currency),
+                }
+              })}
+            />
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <CostCard title="物流・配送費" description="配送方法と単価を入力" disabled={!productOptionsAvailable}>
-              <form
-                className="grid gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  if (!logisticsForm.productId) return
-                  actions.addLogisticsCostEntry({
-                    ...logisticsForm,
-                    costPerUnit: Number(logisticsForm.costPerUnit) || 0,
-                  })
-                  setLogisticsForm({ productId: "", shippingMethod: "宅配便", costPerUnit: 0, currency: "JPY" })
-                }}
-              >
-                <ProductSelect value={logisticsForm.productId} onChange={(value) => setLogisticsForm((prev) => ({ ...prev, productId: value }))} products={data.products} />
-                <Input
-                  placeholder="配送方法"
-                  value={logisticsForm.shippingMethod}
-                  onChange={(event) => setLogisticsForm((prev) => ({ ...prev, shippingMethod: event.target.value }))}
-                />
-                <Input
-                  type="number"
-                  placeholder="単価"
-                  value={logisticsForm.costPerUnit}
-                  onChange={(event) => setLogisticsForm((prev) => ({ ...prev, costPerUnit: Number(event.target.value) }))}
-                />
-                <Select value={logisticsForm.currency} onValueChange={(value) => setLogisticsForm((prev) => ({ ...prev, currency: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="通貨" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currencyOptions.map((currency) => (
-                      <SelectItem key={currency} value={currency}>
-                        {currency}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button type="submit" size="sm" disabled={!productOptionsAvailable}>
-                  登録
-                </Button>
-              </form>
-            </CostCard>
-
-            <CostCard title="電気代" description="商品登録時の値と合わせて入力" disabled={!productOptionsAvailable}>
-              <form
-                className="grid gap-2"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  if (!electricityForm.productId) return
-                  actions.addElectricityCostEntry({
-                    ...electricityForm,
-                    costPerUnit: Number(electricityForm.costPerUnit) || 0,
-                  })
-                  setElectricityForm({ productId: "", costPerUnit: 0, currency: "JPY" })
-                }}
-              >
-                <ProductSelect value={electricityForm.productId} onChange={(value) => setElectricityForm((prev) => ({ ...prev, productId: value }))} products={data.products} />
-                <Input
-                  type="number"
-                  placeholder="単価"
-                  value={electricityForm.costPerUnit}
-                  onChange={(event) => setElectricityForm((prev) => ({ ...prev, costPerUnit: Number(event.target.value) }))}
-                />
-                <Select value={electricityForm.currency} onValueChange={(value) => setElectricityForm((prev) => ({ ...prev, currency: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="通貨" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currencyOptions.map((currency) => (
-                      <SelectItem key={currency} value={currency}>
-                        {currency}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button type="submit" size="sm" disabled={!productOptionsAvailable}>
-                  登録
-                </Button>
-              </form>
-            </CostCard>
+            <CostDisplay
+              title="物流・配送費"
+              description="配送方法"
+              rows={data.costEntries.logistics.map((entry) => {
+                const productName = data.products.find((product) => product.id === entry.productId)?.name ?? "未設定"
+                return {
+                  product: productName,
+                  detail: entry.shippingMethod,
+                  amount: formatCurrency(entry.costPerUnit, entry.currency),
+                }
+              })}
+            />
+            <CostDisplay
+              title="電気代"
+              description="1ユニットあたり"
+              rows={data.costEntries.electricity.map((entry) => {
+                const productName = data.products.find((product) => product.id === entry.productId)?.name ?? "未設定"
+                return {
+                  product: productName,
+                  detail: "基準値",
+                  amount: formatCurrency(entry.costPerUnit, entry.currency),
+                }
+              })}
+            />
           </div>
 
           <Card>
@@ -1237,53 +1817,6 @@ export default function Home() {
   )
 }
 
-function CostCard({
-  title,
-  description,
-  disabled,
-  children,
-}: {
-  title: string
-  description: string
-  disabled?: boolean
-  children: ReactNode
-}) {
-  return (
-    <Card className={disabled ? "opacity-70" : undefined}>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>{disabled ? <p className="text-sm text-muted-foreground">前提となるマスタや商品を登録してください。</p> : children}</CardContent>
-    </Card>
-  )
-}
-
-function ProductSelect({
-  value,
-  onChange,
-  products,
-}: {
-  value: string
-  onChange: (value: string) => void
-  products: Product[]
-}) {
-  return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger>
-        <SelectValue placeholder="商品" />
-      </SelectTrigger>
-      <SelectContent>
-        {products.map((product) => (
-          <SelectItem key={product.id} value={product.id}>
-            {product.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  )
-}
-
 function RegisteredList({
   title,
   items,
@@ -1304,5 +1837,110 @@ function RegisteredList({
         </ul>
       )}
     </div>
+  )
+}
+
+function HintList({ items }: { items: string[] }) {
+  if (!items.length) return null
+  return (
+    <ul className="list-disc space-y-1 pl-5 text-xs text-muted-foreground">
+      {items.map((item, index) => (
+        <li key={`hint-${index}`}>{item}</li>
+      ))}
+    </ul>
+  )
+}
+
+function SectionHeader({
+  title,
+  description,
+  actionLabel,
+  actionDisabled,
+  onAction,
+}: {
+  title: string
+  description: string
+  actionLabel?: string
+  actionDisabled?: boolean
+  onAction?: () => void
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <p className="font-medium">{title}</p>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+      {actionLabel && onAction && (
+        <Button type="button" variant="outline" size="sm" onClick={onAction} disabled={actionDisabled}>
+          {actionLabel}
+        </Button>
+      )}
+    </div>
+  )
+}
+
+function DraftCard({
+  children,
+  onRemove,
+  hideRemove,
+}: {
+  children: ReactNode
+  onRemove?: () => void
+  hideRemove?: boolean
+}) {
+  return (
+    <div className="space-y-3 rounded-md border border-dashed p-3">
+      <div className="space-y-3">{children}</div>
+      {!hideRemove && onRemove && (
+        <div className="flex justify-end">
+          <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
+            行を削除
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CostDisplay({
+  title,
+  description,
+  rows,
+}: {
+  title: string
+  description: string
+  rows: { product: string; detail: string; amount: string }[]
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">まだデータがありません。</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>商品</TableHead>
+                <TableHead>内容</TableHead>
+                <TableHead>金額</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row, index) => (
+                <TableRow key={`${title}-${index}`}>
+                  <TableCell>{row.product}</TableCell>
+                  <TableCell>{row.detail}</TableCell>
+                  <TableCell className="text-right font-medium">{row.amount}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   )
 }

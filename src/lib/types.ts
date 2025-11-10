@@ -76,6 +76,7 @@ export type MaterialCostEntry = {
   productId: string
   materialId: string
   description?: string
+  usageRatio?: number
   costPerUnit: number
   currency: string
 }

@@ -70,23 +70,25 @@ export function useAppData() {
     [setData]
   )
 
-  const addLargeCategory = useCallback((input: Omit<CategoryLarge, "id">) => {
+  const addLargeCategory = useCallback((input: Omit<CategoryLarge, "id"> & { id?: string }) => {
+    const { id, ...rest } = input
     update((prev) => ({
       ...prev,
       categories: {
         ...prev.categories,
-        large: [...prev.categories.large, { id: createId(), ...input }],
+        large: [...prev.categories.large, { id: id ?? createId(), ...rest }],
       },
     }))
   }, [update])
 
   const addMediumCategory = useCallback(
-    (input: Omit<CategoryMedium, "id">) => {
+    (input: Omit<CategoryMedium, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
       update((prev) => ({
         ...prev,
         categories: {
           ...prev.categories,
-          medium: [...prev.categories.medium, { id: createId(), ...input }],
+          medium: [...prev.categories.medium, { id: id ?? createId(), ...rest }],
         },
       }))
     },
@@ -94,12 +96,13 @@ export function useAppData() {
   )
 
   const addSmallCategory = useCallback(
-    (input: Omit<CategorySmall, "id">) => {
+    (input: Omit<CategorySmall, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
       update((prev) => ({
         ...prev,
         categories: {
           ...prev.categories,
-          small: [...prev.categories.small, { id: createId(), ...input }],
+          small: [...prev.categories.small, { id: id ?? createId(), ...rest }],
         },
       }))
     },
@@ -107,50 +110,56 @@ export function useAppData() {
   )
 
   const addMaterial = useCallback(
-    (input: Omit<Material, "id">) => {
-      update((prev) => ({ ...prev, materials: [...prev.materials, { id: createId(), ...input }] }))
+    (input: Omit<Material, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
+      update((prev) => ({ ...prev, materials: [...prev.materials, { id: id ?? createId(), ...rest }] }))
     },
     [update]
   )
 
   const addPackagingItem = useCallback(
-    (input: Omit<PackagingItem, "id">) => {
+    (input: Omit<PackagingItem, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
       update((prev) => ({
         ...prev,
-        packagingItems: [...prev.packagingItems, { id: createId(), ...input }],
+        packagingItems: [...prev.packagingItems, { id: id ?? createId(), ...rest }],
       }))
     },
     [update]
   )
 
   const addLaborRole = useCallback(
-    (input: Omit<LaborRole, "id">) => {
-      update((prev) => ({ ...prev, laborRoles: [...prev.laborRoles, { id: createId(), ...input }] }))
+    (input: Omit<LaborRole, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
+      update((prev) => ({ ...prev, laborRoles: [...prev.laborRoles, { id: id ?? createId(), ...rest }] }))
     },
     [update]
   )
 
   const addEquipment = useCallback(
-    (input: Omit<Equipment, "id">) => {
-      update((prev) => ({ ...prev, equipments: [...prev.equipments, { id: createId(), ...input }] }))
+    (input: Omit<Equipment, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
+      update((prev) => ({ ...prev, equipments: [...prev.equipments, { id: id ?? createId(), ...rest }] }))
     },
     [update]
   )
 
   const addProduct = useCallback(
-    (input: Omit<Product, "id">) => {
-      update((prev) => ({ ...prev, products: [...prev.products, { id: createId(), ...input }] }))
+    (input: Omit<Product, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
+      update((prev) => ({ ...prev, products: [...prev.products, { id: id ?? createId(), ...rest }] }))
     },
     [update]
   )
 
   const addMaterialCostEntry = useCallback(
-    (input: Omit<MaterialCostEntry, "id">) => {
+    (input: Omit<MaterialCostEntry, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
       update((prev) => ({
         ...prev,
         costEntries: {
           ...prev.costEntries,
-          materials: [...prev.costEntries.materials, { id: createId(), ...input }],
+          materials: [...prev.costEntries.materials, { id: id ?? createId(), ...rest }],
         },
       }))
     },
@@ -158,12 +167,13 @@ export function useAppData() {
   )
 
   const addPackagingCostEntry = useCallback(
-    (input: Omit<PackagingCostEntry, "id">) => {
+    (input: Omit<PackagingCostEntry, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
       update((prev) => ({
         ...prev,
         costEntries: {
           ...prev.costEntries,
-          packaging: [...prev.costEntries.packaging, { id: createId(), ...input }],
+          packaging: [...prev.costEntries.packaging, { id: id ?? createId(), ...rest }],
         },
       }))
     },
@@ -171,12 +181,13 @@ export function useAppData() {
   )
 
   const addLaborCostEntry = useCallback(
-    (input: Omit<LaborCostEntry, "id">) => {
+    (input: Omit<LaborCostEntry, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
       update((prev) => ({
         ...prev,
         costEntries: {
           ...prev.costEntries,
-          labor: [...prev.costEntries.labor, { id: createId(), ...input }],
+          labor: [...prev.costEntries.labor, { id: id ?? createId(), ...rest }],
         },
       }))
     },
@@ -184,12 +195,13 @@ export function useAppData() {
   )
 
   const addOutsourcingCostEntry = useCallback(
-    (input: Omit<OutsourcingCostEntry, "id">) => {
+    (input: Omit<OutsourcingCostEntry, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
       update((prev) => ({
         ...prev,
         costEntries: {
           ...prev.costEntries,
-          outsourcing: [...prev.costEntries.outsourcing, { id: createId(), ...input }],
+          outsourcing: [...prev.costEntries.outsourcing, { id: id ?? createId(), ...rest }],
         },
       }))
     },
@@ -197,12 +209,13 @@ export function useAppData() {
   )
 
   const addDevelopmentCostEntry = useCallback(
-    (input: Omit<DevelopmentCostEntry, "id">) => {
+    (input: Omit<DevelopmentCostEntry, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
       update((prev) => ({
         ...prev,
         costEntries: {
           ...prev.costEntries,
-          development: [...prev.costEntries.development, { id: createId(), ...input }],
+          development: [...prev.costEntries.development, { id: id ?? createId(), ...rest }],
         },
       }))
     },
@@ -210,14 +223,15 @@ export function useAppData() {
   )
 
   const addEquipmentAllocation = useCallback(
-    (input: Omit<EquipmentAllocationEntry, "id">) => {
+    (input: Omit<EquipmentAllocationEntry, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
       update((prev) => ({
         ...prev,
         costEntries: {
           ...prev.costEntries,
           equipmentAllocations: [
             ...prev.costEntries.equipmentAllocations,
-            { id: createId(), ...input },
+            { id: id ?? createId(), ...rest },
           ],
         },
       }))
@@ -226,12 +240,13 @@ export function useAppData() {
   )
 
   const addLogisticsCostEntry = useCallback(
-    (input: Omit<LogisticsCostEntry, "id">) => {
+    (input: Omit<LogisticsCostEntry, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
       update((prev) => ({
         ...prev,
         costEntries: {
           ...prev.costEntries,
-          logistics: [...prev.costEntries.logistics, { id: createId(), ...input }],
+          logistics: [...prev.costEntries.logistics, { id: id ?? createId(), ...rest }],
         },
       }))
     },
@@ -239,12 +254,13 @@ export function useAppData() {
   )
 
   const addElectricityCostEntry = useCallback(
-    (input: Omit<ElectricityCostEntry, "id">) => {
+    (input: Omit<ElectricityCostEntry, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
       update((prev) => ({
         ...prev,
         costEntries: {
           ...prev.costEntries,
-          electricity: [...prev.costEntries.electricity, { id: createId(), ...input }],
+          electricity: [...prev.costEntries.electricity, { id: id ?? createId(), ...rest }],
         },
       }))
     },
