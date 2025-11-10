@@ -40,14 +40,19 @@ export function calculateProductUnitCosts(productId: string, data: AppData) {
       return sum + amortized / Math.max(quantity, 1)
     }, 0)
 
-  const equipment = data.costEntries.equipmentAllocations
-    .filter((entry) => entry.productId === productId)
-    .reduce((sum, entry) => {
-      const equipment = data.equipments.find((eq) => eq.id === entry.equipmentId)
-      if (!equipment) return sum
-      const annualCost = equipment.acquisitionCost / Math.max(equipment.amortizationYears || 1, 1)
-      return sum + (annualCost * entry.allocationRatio) / Math.max(entry.annualQuantity || quantity, 1)
-    }, 0)
+  const equipmentEntries = data.costEntries.equipmentAllocations.filter((entry) => entry.productId === productId)
+  const totalEquipmentHours = equipmentEntries.reduce((sum, entry) => sum + (entry.usageHours ?? 0), 0)
+
+  const equipment = equipmentEntries.reduce((sum, entry) => {
+    const equipment = data.equipments.find((eq) => eq.id === entry.equipmentId)
+    if (!equipment) return sum
+    const annualCost = equipment.acquisitionCost / Math.max(equipment.amortizationYears || 1, 1)
+    const ratio =
+      totalEquipmentHours > 0 && entry.usageHours !== undefined
+        ? entry.usageHours / totalEquipmentHours
+        : entry.allocationRatio
+    return sum + (annualCost * ratio) / Math.max(entry.annualQuantity || quantity, 1)
+  }, 0)
 
   const logistics = data.costEntries.logistics
     .filter((entry) => entry.productId === productId)

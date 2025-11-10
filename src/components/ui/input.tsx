@@ -2,7 +2,18 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
+function Input({ className, type, onWheel, ...props }: React.ComponentProps<"input">) {
+  const handleWheel = React.useCallback(
+    (event: React.WheelEvent<HTMLInputElement>) => {
+      if (type === "number") {
+        event.preventDefault()
+        event.currentTarget.blur()
+      }
+      onWheel?.(event)
+    },
+    [type, onWheel]
+  )
+
   return (
     <input
       type={type}
@@ -14,6 +25,7 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
         className
       )}
       {...props}
+      onWheel={handleWheel}
     />
   )
 }

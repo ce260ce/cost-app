@@ -24,6 +24,8 @@ export type Material = {
   unit: string
   sizeDescription: string
   currency: string
+  unitCost: number
+  supplier?: string
   note?: string
 }
 
@@ -32,6 +34,16 @@ export type PackagingItem = {
   name: string
   unit: string
   sizeDescription: string
+  unitCost: number
+  currency: string
+  note?: string
+}
+
+export type ShippingMethod = {
+  id: string
+  name: string
+  description?: string
+  unitCost: number
   currency: string
   note?: string
 }
@@ -64,6 +76,7 @@ export type Product = {
   defaultElectricityCost: number
   registeredAt: string
   options: string[]
+  productionLotSize: number
   expectedProduction: {
     periodYears: number
     quantity: number
@@ -110,6 +123,7 @@ export type OutsourcingCostEntry = {
 export type DevelopmentCostEntry = {
   id: string
   productId: string
+  title?: string
   prototypeLaborCost: number
   prototypeMaterialCost: number
   toolingCost: number
@@ -122,12 +136,13 @@ export type EquipmentAllocationEntry = {
   equipmentId: string
   allocationRatio: number
   annualQuantity: number
+  usageHours?: number
 }
 
 export type LogisticsCostEntry = {
   id: string
   productId: string
-  shippingMethod: string
+  shippingMethodId: string
   costPerUnit: number
   currency: string
 }
@@ -147,6 +162,7 @@ export type AppData = {
   }
   materials: Material[]
   packagingItems: PackagingItem[]
+  shippingMethods: ShippingMethod[]
   laborRoles: LaborRole[]
   equipments: Equipment[]
   products: Product[]
@@ -170,6 +186,7 @@ export const emptyAppData: AppData = {
   },
   materials: [],
   packagingItems: [],
+  shippingMethods: [],
   laborRoles: [],
   equipments: [],
   products: [],
@@ -206,6 +223,8 @@ export const sampleAppData: AppData = {
       unit: "m",
       sizeDescription: "50m ロール",
       currency: "JPY",
+      unitCost: 320,
+      supplier: "FabricMart",
       note: "8号帆布",
     },
     {
@@ -214,6 +233,8 @@ export const sampleAppData: AppData = {
       unit: "㎡",
       sizeDescription: "10㎡ ロット",
       currency: "JPY",
+      unitCost: 450,
+      supplier: "LeatherWorks",
       note: "タンニンなめし",
     },
   ],
@@ -223,6 +244,7 @@ export const sampleAppData: AppData = {
       name: "段ボール S",
       unit: "枚",
       sizeDescription: "320x250x120",
+      unitCost: 80,
       currency: "JPY",
       note: "クラフト",
     },
@@ -231,8 +253,27 @@ export const sampleAppData: AppData = {
       name: "緩衝材",
       unit: "m",
       sizeDescription: "ロール",
+      unitCost: 30,
       currency: "JPY",
       note: "エアキャップ",
+    },
+  ],
+  shippingMethods: [
+    {
+      id: "ship-1",
+      name: "宅配便",
+      description: "一般的な箱発送",
+      unitCost: 180,
+      currency: "JPY",
+      note: "佐川・ヤマト想定",
+    },
+    {
+      id: "ship-2",
+      name: "メール便",
+      description: "ポスト投函",
+      unitCost: 120,
+      currency: "JPY",
+      note: "小型製品向け",
     },
   ],
   laborRoles: [
@@ -269,6 +310,7 @@ export const sampleAppData: AppData = {
       defaultElectricityCost: 25,
       registeredAt: "2024-05-01",
       options: ["金具変更", "刺繍追加"],
+      productionLotSize: 50,
       expectedProduction: {
         periodYears: 1,
         quantity: 3000,
@@ -283,6 +325,7 @@ export const sampleAppData: AppData = {
         productId: "prod-1",
         materialId: "mat-1",
         description: "本体用",
+        usageRatio: 80,
         costPerUnit: 350,
         currency: "JPY",
       },
@@ -291,6 +334,7 @@ export const sampleAppData: AppData = {
         productId: "prod-1",
         materialId: "mat-2",
         description: "持ち手革",
+        usageRatio: 20,
         costPerUnit: 180,
         currency: "JPY",
       },
@@ -342,6 +386,7 @@ export const sampleAppData: AppData = {
       {
         id: "dev-cost-1",
         productId: "prod-1",
+        title: "初期試作",
         prototypeLaborCost: 150000,
         prototypeMaterialCost: 60000,
         toolingCost: 40000,
@@ -355,6 +400,7 @@ export const sampleAppData: AppData = {
         equipmentId: "eq-1",
         allocationRatio: 0.5,
         annualQuantity: 3000,
+        usageHours: 0.6,
       },
       {
         id: "eq-alloc-2",
@@ -362,13 +408,14 @@ export const sampleAppData: AppData = {
         equipmentId: "eq-2",
         allocationRatio: 0.3,
         annualQuantity: 3000,
+        usageHours: 0.4,
       },
     ],
     logistics: [
       {
         id: "log-cost-1",
         productId: "prod-1",
-        shippingMethod: "宅配便",
+        shippingMethodId: "ship-1",
         costPerUnit: 180,
         currency: "JPY",
       },

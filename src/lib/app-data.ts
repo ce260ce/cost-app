@@ -21,6 +21,7 @@ import {
   PackagingCostEntry,
   PackagingItem,
   Product,
+  ShippingMethod,
   emptyAppData,
   sampleAppData,
 } from "./types"
@@ -123,6 +124,17 @@ export function useAppData() {
       update((prev) => ({
         ...prev,
         packagingItems: [...prev.packagingItems, { id: id ?? createId(), ...rest }],
+      }))
+    },
+    [update]
+  )
+
+  const addShippingMethod = useCallback(
+    (input: Omit<ShippingMethod, "id"> & { id?: string }) => {
+      const { id, ...rest } = input
+      update((prev) => ({
+        ...prev,
+        shippingMethods: [...(prev.shippingMethods ?? []), { id: id ?? createId(), ...rest }],
       }))
     },
     [update]
@@ -290,6 +302,7 @@ export function useAppData() {
       addSmallCategory,
       addMaterial,
       addPackagingItem,
+      addShippingMethod,
       addLaborRole,
       addEquipment,
       addProduct,
@@ -306,3 +319,5 @@ export function useAppData() {
     },
   }
 }
+
+export type AppActions = ReturnType<typeof useAppData>["actions"]
