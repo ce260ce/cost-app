@@ -1,5 +1,7 @@
 "use client"
 
+import { useState } from "react"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,6 +15,8 @@ import { CostTab } from "./_components/cost/cost-tab"
 
 export default function Home() {
   const { data, hydrated, actions } = useAppData()
+  const [activeTab, setActiveTab] = useState("cost")
+  const [editingProductId, setEditingProductId] = useState<string | null>(null)
 
   if (!hydrated) {
     return (
@@ -42,8 +46,8 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <Tabs defaultValue="cost">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="cost">原価サマリ</TabsTrigger>
             <TabsTrigger value="product">商品登録</TabsTrigger>
@@ -55,7 +59,12 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="product" className="space-y-6">
-            <ProductTab data={data} actions={actions} />
+            <ProductTab
+              data={data}
+              actions={actions}
+              editingProductId={editingProductId}
+              onRequestEditClear={() => setEditingProductId(null)}
+            />
           </TabsContent>
 
           <TabsContent value="master" className="space-y-6">
@@ -78,6 +87,7 @@ export default function Home() {
                     <TableHead>商品</TableHead>
                     <TableHead>カテゴリ</TableHead>
                     <TableHead>サイズ/個数</TableHead>
+                    <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -100,6 +110,19 @@ export default function Home() {
                         <TableCell className="font-medium">{product.name}</TableCell>
                         <TableCell>{categoryPath}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{sizeText}</TableCell>
+                        <TableCell className="w-20 text-right">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingProductId(product.id)
+                              setActiveTab("product")
+                            }}
+                          >
+                            編集
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     )
                   })}

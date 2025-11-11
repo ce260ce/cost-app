@@ -279,6 +279,35 @@ export function useAppData() {
     [update]
   )
 
+  const removeProduct = useCallback(
+    (productId: string) => {
+      update((prev) => ({
+        ...prev,
+        products: prev.products.filter((product) => product.id !== productId),
+      }))
+    },
+    [update]
+  )
+
+  const removeCostEntriesByProduct = useCallback(
+    (productId: string) => {
+      update((prev) => ({
+        ...prev,
+        costEntries: {
+          materials: prev.costEntries.materials.filter((entry) => entry.productId !== productId),
+          packaging: prev.costEntries.packaging.filter((entry) => entry.productId !== productId),
+          labor: prev.costEntries.labor.filter((entry) => entry.productId !== productId),
+          outsourcing: prev.costEntries.outsourcing.filter((entry) => entry.productId !== productId),
+          development: prev.costEntries.development.filter((entry) => entry.productId !== productId),
+          equipmentAllocations: prev.costEntries.equipmentAllocations.filter((entry) => entry.productId !== productId),
+          logistics: prev.costEntries.logistics.filter((entry) => entry.productId !== productId),
+          electricity: prev.costEntries.electricity.filter((entry) => entry.productId !== productId),
+        },
+      }))
+    },
+    [update]
+  )
+
   const resetAll = useCallback(() => {
     update(() => emptyAppData)
     if (typeof window !== "undefined") {
@@ -314,6 +343,8 @@ export function useAppData() {
       addEquipmentAllocation,
       addLogisticsCostEntry,
       addElectricityCostEntry,
+      removeProduct,
+      removeCostEntriesByProduct,
       resetAll,
       seedSample,
     },

@@ -1,6 +1,6 @@
 "use client"
 
-import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react"
+import { type Dispatch, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -83,66 +83,189 @@ type ElectricityCostDraft = {
 interface ProductTabProps {
   data: AppData
   actions: AppActions
+  editingProductId?: string | null
+  onRequestEditClear?: () => void
 }
 
-export function ProductTab({ data, actions }: ProductTabProps) {
-  const shippingMethods = data.shippingMethods ?? []
+export function ProductTab({ data, actions, editingProductId, onRequestEditClear }: ProductTabProps) {
+  const shippingMethods = useMemo(() => data.shippingMethods ?? [], [data.shippingMethods])
+  const editingProduct = editingProductId
+    ? data.products.find((product) => product.id === editingProductId)
+    : null
 
-  const createMaterialDraft = (): MaterialCostDraft => ({
+  const createMaterialDraft = useCallback((): MaterialCostDraft => ({
     id: createTempId(),
     materialId: data.materials[0]?.id ?? "",
     usageRatio: 100,
     description: "",
-  })
+  }), [data.materials])
 
-  const createPackagingDraft = (): PackagingCostDraft => ({
+  const createPackagingDraft = useCallback((): PackagingCostDraft => ({
     id: createTempId(),
     packagingItemId: data.packagingItems[0]?.id ?? "",
     quantity: 1,
-  })
+  }), [data.packagingItems])
 
-  const createLaborDraft = (initialHours = 1): LaborCostDraft => ({
-    id: createTempId(),
-    laborRoleId: data.laborRoles[0]?.id ?? "",
-    hours: initialHours,
-    peopleCount: 1,
-  })
+  const createLaborDraft = useCallback(
+    (initialHours = 1): LaborCostDraft => ({
+      id: createTempId(),
+      laborRoleId: data.laborRoles[0]?.id ?? "",
+      hours: initialHours,
+      peopleCount: 1,
+    }),
+    [data.laborRoles]
+  )
 
-  const createOutsourcingDraft = (): OutsourcingCostDraft => ({
+  const createOutsourcingDraft = useCallback((): OutsourcingCostDraft => ({
     id: createTempId(),
     note: "",
     costPerUnit: "",
     currency: "JPY",
-  })
+  }), [])
 
-  const createDevelopmentDraft = (): DevelopmentCostDraft => ({
+  const createDevelopmentDraft = useCallback((): DevelopmentCostDraft => ({
     id: createTempId(),
     title: "",
     prototypeLaborCost: "",
     prototypeMaterialCost: "",
     toolingCost: "",
     amortizationYears: 3,
-  })
+  }), [])
 
-  const createLogisticsDraft = (): LogisticsCostDraft => ({
+  const createLogisticsDraft = useCallback((): LogisticsCostDraft => ({
     id: createTempId(),
     shippingMethodId: shippingMethods[0]?.id ?? "",
-  })
+  }), [shippingMethods])
 
-  const createElectricityDraft = (): ElectricityCostDraft => ({
+  const createElectricityDraft = useCallback((): ElectricityCostDraft => ({
     id: createTempId(),
     costPerUnit: "",
     currency: "JPY",
-  })
+  }), [])
 
-  const [materialDrafts, setMaterialDrafts] = useState<MaterialCostDraft[]>(() => [createMaterialDraft()])
-  const [packagingDrafts, setPackagingDrafts] = useState<PackagingCostDraft[]>(() => [createPackagingDraft()])
-  const [laborDrafts, setLaborDrafts] = useState<LaborCostDraft[]>(() => [createLaborDraft()])
-  const [outsourcingDrafts, setOutsourcingDrafts] = useState<OutsourcingCostDraft[]>(() => [createOutsourcingDraft()])
-  const [developmentDrafts, setDevelopmentDrafts] = useState<DevelopmentCostDraft[]>(() => [createDevelopmentDraft()])
-  const [equipmentAllocDrafts, setEquipmentAllocDrafts] = useState<EquipmentAllocationDraft[]>([])
-  const [logisticsDrafts, setLogisticsDrafts] = useState<LogisticsCostDraft[]>(() => [createLogisticsDraft()])
-  const [electricityDrafts, setElectricityDrafts] = useState<ElectricityCostDraft[]>(() => [createElectricityDraft()])
+  const buildInitialMaterialDrafts = () => {
+    if (!editingProductId) return [createMaterialDraft()]
+    const entries = data.costEntries.materials
+      .filter((entry) => entry.productId === editingProductId)
+      .map((entry) => ({
+        id: createTempId(),
+        materialId: entry.materialId,
+        usageRatio: entry.usageRatio ?? 0,
+        description: entry.description ?? "",
+      }))
+    return entries.length ? entries : [createMaterialDraft()]
+  }
+
+  const buildInitialPackagingDrafts = () => {
+    if (!editingProductId) return [createPackagingDraft()]
+    const entries = data.costEntries.packaging
+      .filter((entry) => entry.productId === editingProductId)
+      .map((entry) => ({
+        id: createTempId(),
+        packagingItemId: entry.packagingItemId,
+        quantity: entry.quantity,
+      }))
+    return entries.length ? entries : [createPackagingDraft()]
+  }
+
+  const buildInitialLaborDrafts = () => {
+    if (!editingProductId || !editingProduct) return [createLaborDraft()]
+    const entries = data.costEntries.labor
+      .filter((entry) => entry.productId === editingProductId)
+      .map((entry) => ({
+        id: createTempId(),
+        laborRoleId: entry.laborRoleId,
+        hours: entry.hours,
+        peopleCount: entry.peopleCount,
+        hourlyRateOverride: entry.hourlyRateOverride,
+      }))
+    return entries.length ? entries : [createLaborDraft(editingProduct.baseManHours)]
+  }
+
+  const buildInitialOutsourcingDrafts = () => {
+    if (!editingProductId) return [createOutsourcingDraft()]
+    const entries = data.costEntries.outsourcing
+      .filter((entry) => entry.productId === editingProductId)
+      .map((entry) => ({
+        id: createTempId(),
+        note: entry.note ?? "",
+        costPerUnit: entry.costPerUnit,
+        currency: entry.currency,
+      }))
+    return entries.length ? entries : [createOutsourcingDraft()]
+  }
+
+  const buildInitialDevelopmentDrafts = () => {
+    if (!editingProductId) return [createDevelopmentDraft()]
+    const entries = data.costEntries.development
+      .filter((entry) => entry.productId === editingProductId)
+      .map((entry) => ({
+        id: createTempId(),
+        title: entry.title ?? "",
+        prototypeLaborCost: entry.prototypeLaborCost,
+        prototypeMaterialCost: entry.prototypeMaterialCost,
+        toolingCost: entry.toolingCost,
+        amortizationYears: entry.amortizationYears,
+      }))
+    return entries.length ? entries : [createDevelopmentDraft()]
+  }
+
+  const buildInitialEquipmentDrafts = () => {
+    if (!editingProductId) return []
+    return data.costEntries.equipmentAllocations
+      .filter((entry) => entry.productId === editingProductId)
+      .map((entry) => ({
+        id: createTempId(),
+        equipmentId: entry.equipmentId,
+        allocationRatio: entry.allocationRatio,
+        annualQuantity: entry.annualQuantity,
+        usageHours: entry.usageHours ?? 0,
+      }))
+  }
+
+  const buildInitialLogisticsDrafts = () => {
+    if (!editingProductId) return [createLogisticsDraft()]
+    const entries = data.costEntries.logistics
+      .filter((entry) => entry.productId === editingProductId)
+      .map((entry) => ({
+        id: createTempId(),
+        shippingMethodId: entry.shippingMethodId,
+      }))
+    return entries.length ? entries : [createLogisticsDraft()]
+  }
+
+  const buildInitialElectricityDrafts = () => {
+    if (!editingProductId) return [createElectricityDraft()]
+    const entries = data.costEntries.electricity
+      .filter((entry) => entry.productId === editingProductId)
+      .map((entry) => ({
+        id: createTempId(),
+        costPerUnit: entry.costPerUnit,
+        currency: entry.currency,
+      }))
+    return entries.length ? entries : [createElectricityDraft()]
+  }
+
+  const [materialDrafts, setMaterialDrafts] = useState<MaterialCostDraft[]>(buildInitialMaterialDrafts)
+  const [packagingDrafts, setPackagingDrafts] = useState<PackagingCostDraft[]>(buildInitialPackagingDrafts)
+  const [laborDrafts, setLaborDrafts] = useState<LaborCostDraft[]>(buildInitialLaborDrafts)
+  const [outsourcingDrafts, setOutsourcingDrafts] = useState<OutsourcingCostDraft[]>(buildInitialOutsourcingDrafts)
+  const [developmentDrafts, setDevelopmentDrafts] = useState<DevelopmentCostDraft[]>(buildInitialDevelopmentDrafts)
+  const [equipmentAllocDrafts, setEquipmentAllocDrafts] = useState<EquipmentAllocationDraft[]>(buildInitialEquipmentDrafts)
+  const [logisticsDrafts, setLogisticsDrafts] = useState<LogisticsCostDraft[]>(buildInitialLogisticsDrafts)
+  const [electricityDrafts, setElectricityDrafts] = useState<ElectricityCostDraft[]>(buildInitialElectricityDrafts)
+
+  const resetFormState = () => {
+    setProductForm(createEmptyProductForm())
+    setMaterialDrafts([createMaterialDraft()])
+    setPackagingDrafts([createPackagingDraft()])
+    setLaborDrafts([createLaborDraft()])
+    setOutsourcingDrafts([createOutsourcingDraft()])
+    setDevelopmentDrafts([createDevelopmentDraft()])
+    setEquipmentAllocDrafts([])
+    setLogisticsDrafts([createLogisticsDraft()])
+    setElectricityDrafts([createElectricityDraft()])
+  }
 
   const addDraft = <T extends { id: string }>(setState: Dispatch<SetStateAction<T[]>>, draft: T) => {
     setState((prev) => [...prev, draft])
@@ -156,7 +279,7 @@ export function ProductTab({ data, actions }: ProductTabProps) {
     setState((prev) => prev.filter((item) => item.id !== id))
   }
 
-  const [productForm, setProductForm] = useState<Omit<Product, "id">>({
+  const createEmptyProductForm = (): Omit<Product, "id"> => ({
     name: "",
     categoryLargeId: "",
     categoryMediumId: "",
@@ -173,6 +296,8 @@ export function ProductTab({ data, actions }: ProductTabProps) {
     },
     equipmentIds: [],
   })
+
+  const [productForm, setProductForm] = useState<Omit<Product, "id">>(createEmptyProductForm)
 
   const handleToggleEquipment = (equipmentId: string, checked: boolean) => {
     setProductForm((prev) => {
@@ -232,12 +357,183 @@ export function ProductTab({ data, actions }: ProductTabProps) {
     addEquipmentAllocation,
     addLogisticsCostEntry,
     addElectricityCostEntry,
+    removeProduct,
+    removeCostEntriesByProduct,
   } = actions
 
   const totalEquipmentHours = equipmentAllocDrafts.reduce((sum, draft) => sum + (draft.usageHours || 0), 0)
 
+  /*
+   * Hydrateフォーム: 編集対象の商品を切り替えたときだけ状態をまとめて入れ替えたいので
+   * useEffect内でsetStateしています（フォーム操作中は通常のイベントで更新される）。
+   * このケースでは cascaded render のリスクがないため lint を一時的に無効化します。
+   */
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!editingProductId) return
+    const product = data.products.find((p) => p.id === editingProductId)
+    if (!product) return
+
+    setProductForm({
+      name: product.name,
+      categoryLargeId: product.categoryLargeId ?? "",
+      categoryMediumId: product.categoryMediumId ?? "",
+      categorySmallId: product.categorySmallId ?? "",
+      sizeVariants:
+        product.sizeVariants && product.sizeVariants.length > 0
+          ? product.sizeVariants
+          : [{ label: "", quantity: 0 }],
+      baseManHours: product.baseManHours,
+      defaultElectricityCost: product.defaultElectricityCost,
+      registeredAt: product.registeredAt,
+      options: product.options ?? [],
+      productionLotSize: product.productionLotSize,
+      expectedProduction: {
+        periodYears: product.expectedProduction.periodYears,
+        quantity: product.expectedProduction.quantity,
+      },
+      equipmentIds: product.equipmentIds ?? [],
+    })
+
+    const mapOrFallback = <T,>(entries: T[], fallback: () => T) =>
+      entries.length > 0 ? entries : [fallback()]
+
+    setMaterialDrafts(
+      mapOrFallback(
+        data.costEntries.materials
+          .filter((entry) => entry.productId === editingProductId)
+          .map((entry) => ({
+            id: createTempId(),
+            materialId: entry.materialId,
+            usageRatio: entry.usageRatio ?? 0,
+            description: entry.description ?? "",
+          })),
+        createMaterialDraft
+      )
+    )
+
+    setPackagingDrafts(
+      mapOrFallback(
+        data.costEntries.packaging
+          .filter((entry) => entry.productId === editingProductId)
+          .map((entry) => ({
+            id: createTempId(),
+            packagingItemId: entry.packagingItemId,
+            quantity: entry.quantity,
+          })),
+        createPackagingDraft
+      )
+    )
+
+    setLaborDrafts(
+      mapOrFallback(
+        data.costEntries.labor
+          .filter((entry) => entry.productId === editingProductId)
+          .map((entry) => ({
+            id: createTempId(),
+            laborRoleId: entry.laborRoleId,
+            hours: entry.hours,
+            peopleCount: entry.peopleCount,
+            hourlyRateOverride: entry.hourlyRateOverride,
+          })),
+        () => createLaborDraft(product.baseManHours)
+      )
+    )
+
+    setOutsourcingDrafts(
+      mapOrFallback(
+        data.costEntries.outsourcing
+          .filter((entry) => entry.productId === editingProductId)
+          .map((entry) => ({
+            id: createTempId(),
+            note: entry.note ?? "",
+            costPerUnit: entry.costPerUnit,
+            currency: entry.currency,
+          })),
+        createOutsourcingDraft
+      )
+    )
+
+    setDevelopmentDrafts(
+      mapOrFallback(
+        data.costEntries.development
+          .filter((entry) => entry.productId === editingProductId)
+          .map((entry) => ({
+            id: createTempId(),
+            title: entry.title ?? "",
+            prototypeLaborCost: entry.prototypeLaborCost,
+            prototypeMaterialCost: entry.prototypeMaterialCost,
+            toolingCost: entry.toolingCost,
+            amortizationYears: entry.amortizationYears,
+          })),
+        createDevelopmentDraft
+      )
+    )
+
+    setEquipmentAllocDrafts(
+      data.costEntries.equipmentAllocations
+        .filter((entry) => entry.productId === editingProductId)
+        .map((entry) => ({
+          id: createTempId(),
+          equipmentId: entry.equipmentId,
+          allocationRatio: entry.allocationRatio,
+          annualQuantity: entry.annualQuantity,
+          usageHours: entry.usageHours ?? 0,
+        }))
+    )
+
+    setLogisticsDrafts(
+      mapOrFallback(
+        data.costEntries.logistics
+          .filter((entry) => entry.productId === editingProductId)
+          .map((entry) => ({
+            id: createTempId(),
+            shippingMethodId: entry.shippingMethodId,
+          })),
+        createLogisticsDraft
+      )
+    )
+
+    setElectricityDrafts(
+      mapOrFallback(
+        data.costEntries.electricity
+          .filter((entry) => entry.productId === editingProductId)
+          .map((entry) => ({
+            id: createTempId(),
+            costPerUnit: entry.costPerUnit,
+            currency: entry.currency,
+          })),
+        createElectricityDraft
+      )
+    )
+  }, [
+    editingProductId,
+    data,
+    createMaterialDraft,
+    createPackagingDraft,
+    createLaborDraft,
+    createOutsourcingDraft,
+    createDevelopmentDraft,
+    createLogisticsDraft,
+    createElectricityDraft,
+  ])
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const handleCancelEdit = () => {
+    resetFormState()
+    onRequestEditClear?.()
+  }
+
   return (
     <div className="space-y-6">
+      {editingProductId && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed bg-muted/60 px-3 py-2 text-sm">
+          <span>編集中: {editingProduct?.name ?? "選択中の商品"}</span>
+          <Button type="button" variant="ghost" size="sm" onClick={handleCancelEdit}>
+            編集をやめて新規作成
+          </Button>
+        </div>
+      )}
           <Card>
             <CardHeader>
               <CardTitle>商品登録フォーム</CardTitle>
@@ -249,7 +545,7 @@ export function ProductTab({ data, actions }: ProductTabProps) {
                 onSubmit={(event) => {
                   event.preventDefault()
                   if (!productForm.name.trim()) return
-                  const newProductId = createTempId()
+                  const targetProductId = editingProductId ?? createTempId()
                   const electricityUnitCost =
                     electricityDrafts.find((draft) => Number(draft.costPerUnit) > 0)?.costPerUnit ?? 0
                   const normalizedSizeVariants = productForm.sizeVariants
@@ -270,7 +566,12 @@ export function ProductTab({ data, actions }: ProductTabProps) {
                     },
                     defaultElectricityCost: Number(electricityUnitCost) || 0,
                   }
-                  addProduct({ id: newProductId, ...normalizedProduct })
+                  if (editingProductId) {
+                    removeProduct(editingProductId)
+                    removeCostEntriesByProduct(editingProductId)
+                  }
+
+                  addProduct({ id: targetProductId, ...normalizedProduct })
 
                   materialDrafts
                     .filter((draft) => draft.materialId)
@@ -280,7 +581,7 @@ export function ProductTab({ data, actions }: ProductTabProps) {
                       const usageRatio = Math.max(Number(draft.usageRatio) || 0, 0)
                       const costPerUnit = (material.unitCost || 0) * (usageRatio / 100)
                       addMaterialCostEntry({
-                        productId: newProductId,
+                        productId: targetProductId,
                         materialId: draft.materialId,
                         description: draft.description,
                         usageRatio,
@@ -295,7 +596,7 @@ export function ProductTab({ data, actions }: ProductTabProps) {
                       const packagingItem = data.packagingItems.find((item) => item.id === draft.packagingItemId)
                       if (!packagingItem) return
                       addPackagingCostEntry({
-                        productId: newProductId,
+                        productId: targetProductId,
                         packagingItemId: draft.packagingItemId,
                         quantity: Number(draft.quantity) || 0,
                         costPerUnit: packagingItem.unitCost || 0,
@@ -307,7 +608,7 @@ export function ProductTab({ data, actions }: ProductTabProps) {
                     .filter((draft) => draft.laborRoleId)
                     .forEach((draft) =>
                       addLaborCostEntry({
-                        productId: newProductId,
+                        productId: targetProductId,
                         laborRoleId: draft.laborRoleId,
                         hours: Number(draft.hours) || 0,
                         peopleCount: Number(draft.peopleCount) || 0,
@@ -319,7 +620,7 @@ export function ProductTab({ data, actions }: ProductTabProps) {
                     .filter((draft) => draft.note.trim() || Number(draft.costPerUnit) > 0)
                     .forEach((draft) =>
                       addOutsourcingCostEntry({
-                        productId: newProductId,
+                        productId: targetProductId,
                         costPerUnit: Number(draft.costPerUnit) || 0,
                         currency: draft.currency,
                         note: draft.note,
@@ -335,7 +636,7 @@ export function ProductTab({ data, actions }: ProductTabProps) {
                     )
                     .forEach((draft) =>
                       addDevelopmentCostEntry({
-                        productId: newProductId,
+                        productId: targetProductId,
                         title: draft.title.trim() || "開発コスト",
                         prototypeLaborCost: Number(draft.prototypeLaborCost) || 0,
                         prototypeMaterialCost: Number(draft.prototypeMaterialCost) || 0,
@@ -358,7 +659,7 @@ export function ProductTab({ data, actions }: ProductTabProps) {
                           ? usageHours / totalEquipmentHoursForSubmit
                           : Number(draft.allocationRatio) || 0
                       addEquipmentAllocation({
-                        productId: newProductId,
+                        productId: targetProductId,
                         equipmentId: draft.equipmentId,
                         allocationRatio: ratio,
                         annualQuantity:
@@ -373,7 +674,7 @@ export function ProductTab({ data, actions }: ProductTabProps) {
                       const method = shippingMethods.find((item) => item.id === draft.shippingMethodId)
                       if (!method) return
                       addLogisticsCostEntry({
-                        productId: newProductId,
+                        productId: targetProductId,
                         shippingMethodId: draft.shippingMethodId,
                         costPerUnit: method.unitCost || 0,
                         currency: method.currency,
@@ -384,34 +685,14 @@ export function ProductTab({ data, actions }: ProductTabProps) {
                     .filter((draft) => Number(draft.costPerUnit) > 0)
                     .forEach((draft) =>
                       addElectricityCostEntry({
-                        productId: newProductId,
+                        productId: targetProductId,
                         costPerUnit: Number(draft.costPerUnit) || 0,
                         currency: draft.currency,
                       })
                     )
 
-                  setProductForm({
-                    name: "",
-                    categoryLargeId: "",
-                    categoryMediumId: "",
-                    categorySmallId: "",
-                    sizeVariants: [{ label: "", quantity: 0 }],
-                    baseManHours: 0,
-                    defaultElectricityCost: 0,
-                    registeredAt: new Date().toISOString().slice(0, 10),
-                    options: [],
-                    productionLotSize: 1,
-                    expectedProduction: { periodYears: 1, quantity: 1000 },
-                    equipmentIds: [],
-                  })
-                  setMaterialDrafts([createMaterialDraft()])
-                  setPackagingDrafts([createPackagingDraft()])
-                  setLaborDrafts([createLaborDraft()])
-                  setOutsourcingDrafts([createOutsourcingDraft()])
-                  setDevelopmentDrafts([createDevelopmentDraft()])
-                  setEquipmentAllocDrafts([])
-                  setLogisticsDrafts([createLogisticsDraft()])
-                  setElectricityDrafts([createElectricityDraft()])
+                  resetFormState()
+                  onRequestEditClear?.()
                 }}
               >
 
