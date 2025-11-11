@@ -839,10 +839,11 @@ function MasterListView({ data, actions }: MasterTabProps) {
   }
 
   const handleMaterialSave = () => {
-    if (!editingMaterial.id) return
+    const { id, ...rest } = editingMaterial
+    if (!id) return
     const name = editingMaterial.name.trim()
     if (!name) return
-    updateMaterial({ id: editingMaterial.id, ...editingMaterial, name })
+    updateMaterial({ id, ...rest, name })
     toast.success("材料を更新しました", {
       description: `${name} / ${formatCurrency(editingMaterial.unitCost, editingMaterial.currency)}`,
     })
@@ -850,10 +851,11 @@ function MasterListView({ data, actions }: MasterTabProps) {
   }
 
   const handlePackagingSave = () => {
-    if (!editingPackaging.id) return
+    const { id, ...rest } = editingPackaging
+    if (!id) return
     const name = editingPackaging.name.trim()
     if (!name) return
-    updatePackagingItem({ id: editingPackaging.id, ...editingPackaging, name })
+    updatePackagingItem({ id, ...rest, name })
     toast.success("梱包材を更新しました", {
       description: `${name} / ${formatCurrency(editingPackaging.unitCost, editingPackaging.currency)}`,
     })
@@ -861,10 +863,11 @@ function MasterListView({ data, actions }: MasterTabProps) {
   }
 
   const handleShippingSave = () => {
-    if (!editingShipping.id) return
+    const { id, ...rest } = editingShipping
+    if (!id) return
     const name = editingShipping.name.trim()
     if (!name) return
-    updateShippingMethod({ id: editingShipping.id, ...editingShipping, name })
+    updateShippingMethod({ id, ...rest, name })
     toast.success("配送方法を更新しました", {
       description: `${name} / ${formatCurrency(editingShipping.unitCost, editingShipping.currency)}`,
     })
@@ -872,10 +875,11 @@ function MasterListView({ data, actions }: MasterTabProps) {
   }
 
   const handleLaborSave = () => {
-    if (!editingLabor.id) return
+    const { id, ...rest } = editingLabor
+    if (!id) return
     const name = editingLabor.name.trim()
     if (!name) return
-    updateLaborRole({ id: editingLabor.id, ...editingLabor, name })
+    updateLaborRole({ id, ...rest, name })
     toast.success("人件費レートを更新しました", {
       description: `${name} / ${formatCurrency(editingLabor.hourlyRate, editingLabor.currency)}`,
     })
@@ -883,10 +887,11 @@ function MasterListView({ data, actions }: MasterTabProps) {
   }
 
   const handleEquipmentSave = () => {
-    if (!editingEquipment.id) return
+    const { id, ...rest } = editingEquipment
+    if (!id) return
     const name = editingEquipment.name.trim()
     if (!name) return
-    updateEquipment({ id: editingEquipment.id, ...editingEquipment, name })
+    updateEquipment({ id, ...rest, name })
     toast.success("設備を更新しました", {
       description: `${name} / ${formatCurrency(editingEquipment.acquisitionCost, editingEquipment.currency)}`,
     })

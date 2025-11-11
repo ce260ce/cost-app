@@ -2,6 +2,8 @@
 
 import { type Dispatch, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react"
 
+import { toast } from "sonner"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -288,7 +290,7 @@ export function ProductTab({ data, actions, editingProductId, onRequestEditClear
     baseManHours: 0,
     defaultElectricityCost: 0,
     registeredAt: new Date().toISOString().slice(0, 10),
-    options: [],
+    notes: "",
     productionLotSize: 1,
     expectedProduction: {
       periodYears: 1,
@@ -386,7 +388,7 @@ export function ProductTab({ data, actions, editingProductId, onRequestEditClear
       baseManHours: product.baseManHours,
       defaultElectricityCost: product.defaultElectricityCost,
       registeredAt: product.registeredAt,
-      options: product.options ?? [],
+      notes: product.notes ?? "",
       productionLotSize: product.productionLotSize,
       expectedProduction: {
         periodYears: product.expectedProduction.periodYears,
@@ -537,7 +539,7 @@ export function ProductTab({ data, actions, editingProductId, onRequestEditClear
           <Card>
             <CardHeader>
               <CardTitle>商品登録フォーム</CardTitle>
-              <CardDescription>カテゴリ・想定生産量・制作工数・オプションなどを設定します。</CardDescription>
+              <CardDescription>カテゴリ・想定生産量・制作工数・オプション（名称＋個数）・備考を設定します。</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <form
@@ -545,6 +547,7 @@ export function ProductTab({ data, actions, editingProductId, onRequestEditClear
                 onSubmit={(event) => {
                   event.preventDefault()
                   if (!productForm.name.trim()) return
+                  const isEditing = Boolean(editingProductId)
                   const targetProductId = editingProductId ?? createTempId()
                   const electricityUnitCost =
                     electricityDrafts.find((draft) => Number(draft.costPerUnit) > 0)?.costPerUnit ?? 0
@@ -554,10 +557,12 @@ export function ProductTab({ data, actions, editingProductId, onRequestEditClear
                       quantity: Number(variant.quantity) || 0,
                     }))
                     .filter((variant) => variant.label.length > 0)
+                  const normalizedNotes = productForm.notes?.trim() ?? ""
 
                   const normalizedProduct = {
                     ...productForm,
                     sizeVariants: normalizedSizeVariants,
+                    notes: normalizedNotes,
                     baseManHours: Number(productForm.baseManHours) || 0,
                     productionLotSize: Number(productForm.productionLotSize) || 1,
                     expectedProduction: {
@@ -690,6 +695,11 @@ export function ProductTab({ data, actions, editingProductId, onRequestEditClear
                         currency: draft.currency,
                       })
                     )
+
+                  const resultLabel = normalizedProduct.name || "商品"
+                  toast.success(isEditing ? "商品を更新しました" : "商品を登録しました", {
+                    description: `「${resultLabel}」の原価情報を保存しました。`,
+                  })
 
                   resetFormState()
                   onRequestEditClear?.()

@@ -115,21 +115,21 @@ export function ProductBasicsSection({ data, productForm, setProductForm, handle
       </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label className="text-xs text-muted-foreground">サイズ展開</Label>
+          <Label className="text-xs text-muted-foreground">オプション（名称＋個数）</Label>
           <Button type="button" variant="outline" size="sm" onClick={handleAddSizeVariant}>
-            サイズを追加
+            オプションを追加
           </Button>
         </div>
         {productForm.sizeVariants.length === 0 ? (
-          <p className="text-xs text-muted-foreground">サイズはまだ登録されていません。</p>
+          <p className="text-xs text-muted-foreground">オプションはまだ登録されていません。</p>
         ) : (
           <div className="space-y-2">
             {productForm.sizeVariants.map((variant, index) => (
               <div key={`size-${index}`} className="flex flex-wrap gap-2 rounded-md border p-3">
                 <div className="min-w-[140px] flex-1 space-y-1">
-                  <Label className="text-xs text-muted-foreground">サイズ名称</Label>
+                  <Label className="text-xs text-muted-foreground">名称</Label>
                   <Input
-                    placeholder="例: S"
+                    placeholder="例: 真鍮金具"
                     value={variant.label}
                     onChange={(event) =>
                       handleUpdateSizeVariant(index, { label: event.target.value })
@@ -139,7 +139,7 @@ export function ProductBasicsSection({ data, productForm, setProductForm, handle
                 <div className="w-40 min-w-[120px] space-y-1">
                   <Label className="text-xs text-muted-foreground">数量</Label>
                   <NumberInput
-                    placeholder="例: 100"
+                    placeholder="例: 30"
                     value={variant.quantity}
                     onValueChange={(next) =>
                       handleUpdateSizeVariant(index, { quantity: next === "" ? 0 : next })
@@ -162,22 +162,17 @@ export function ProductBasicsSection({ data, productForm, setProductForm, handle
           </div>
         )}
         <p className="text-xs text-muted-foreground">
-          例: S を 50 個、M を 30 個など、サイズ別の在庫予定を入力してください。
+          例: S を 50 個、金具変更を 30 個など、名称ごとの個数を入力してください。
         </p>
       </div>
-      <Textarea
-        placeholder="オプションの種類 (例: 金具変更, 刺繍追加)"
-        value={productForm.options.join(", ")}
-        onChange={(event) =>
-          setProductForm((prev) => ({
-            ...prev,
-            options: event.target.value
-              .split(",")
-              .map((option) => option.trim())
-              .filter(Boolean),
-          }))
-        }
-      />
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">備考</Label>
+        <Textarea
+          placeholder="サイズ配分の理由やカスタム要望のメモなど"
+          value={productForm.notes ?? ""}
+          onChange={(event) => setProductForm((prev) => ({ ...prev, notes: event.target.value }))}
+        />
+      </div>
       <div className="grid gap-2 md:grid-cols-3">
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">制作工数 (時間)</Label>

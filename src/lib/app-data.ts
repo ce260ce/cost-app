@@ -82,6 +82,16 @@ export function useAppData() {
     }))
   }, [update])
 
+  const updateLargeCategory = useCallback((input: CategoryLarge) => {
+    update((prev) => ({
+      ...prev,
+      categories: {
+        ...prev.categories,
+        large: prev.categories.large.map((category) => (category.id === input.id ? input : category)),
+      },
+    }))
+  }, [update])
+
   const addMediumCategory = useCallback(
     (input: Omit<CategoryMedium, "id"> & { id?: string }) => {
       const { id, ...rest } = input
@@ -95,6 +105,16 @@ export function useAppData() {
     },
     [update]
   )
+
+  const updateMediumCategory = useCallback((input: CategoryMedium) => {
+    update((prev) => ({
+      ...prev,
+      categories: {
+        ...prev.categories,
+        medium: prev.categories.medium.map((category) => (category.id === input.id ? input : category)),
+      },
+    }))
+  }, [update])
 
   const addSmallCategory = useCallback(
     (input: Omit<CategorySmall, "id"> & { id?: string }) => {
@@ -110,6 +130,16 @@ export function useAppData() {
     [update]
   )
 
+  const updateSmallCategory = useCallback((input: CategorySmall) => {
+    update((prev) => ({
+      ...prev,
+      categories: {
+        ...prev.categories,
+        small: prev.categories.small.map((category) => (category.id === input.id ? input : category)),
+      },
+    }))
+  }, [update])
+
   const addMaterial = useCallback(
     (input: Omit<Material, "id"> & { id?: string }) => {
       const { id, ...rest } = input
@@ -117,6 +147,13 @@ export function useAppData() {
     },
     [update]
   )
+
+  const updateMaterial = useCallback((input: Material) => {
+    update((prev) => ({
+      ...prev,
+      materials: prev.materials.map((material) => (material.id === input.id ? input : material)),
+    }))
+  }, [update])
 
   const addPackagingItem = useCallback(
     (input: Omit<PackagingItem, "id"> & { id?: string }) => {
@@ -129,6 +166,13 @@ export function useAppData() {
     [update]
   )
 
+  const updatePackagingItem = useCallback((input: PackagingItem) => {
+    update((prev) => ({
+      ...prev,
+      packagingItems: prev.packagingItems.map((item) => (item.id === input.id ? input : item)),
+    }))
+  }, [update])
+
   const addShippingMethod = useCallback(
     (input: Omit<ShippingMethod, "id"> & { id?: string }) => {
       const { id, ...rest } = input
@@ -140,6 +184,13 @@ export function useAppData() {
     [update]
   )
 
+  const updateShippingMethod = useCallback((input: ShippingMethod) => {
+    update((prev) => ({
+      ...prev,
+      shippingMethods: (prev.shippingMethods ?? []).map((method) => (method.id === input.id ? input : method)),
+    }))
+  }, [update])
+
   const addLaborRole = useCallback(
     (input: Omit<LaborRole, "id"> & { id?: string }) => {
       const { id, ...rest } = input
@@ -148,6 +199,13 @@ export function useAppData() {
     [update]
   )
 
+  const updateLaborRole = useCallback((input: LaborRole) => {
+    update((prev) => ({
+      ...prev,
+      laborRoles: prev.laborRoles.map((role) => (role.id === input.id ? input : role)),
+    }))
+  }, [update])
+
   const addEquipment = useCallback(
     (input: Omit<Equipment, "id"> & { id?: string }) => {
       const { id, ...rest } = input
@@ -155,6 +213,13 @@ export function useAppData() {
     },
     [update]
   )
+
+  const updateEquipment = useCallback((input: Equipment) => {
+    update((prev) => ({
+      ...prev,
+      equipments: prev.equipments.map((equipment) => (equipment.id === input.id ? input : equipment)),
+    }))
+  }, [update])
 
   const addProduct = useCallback(
     (input: Omit<Product, "id"> & { id?: string }) => {
@@ -327,13 +392,21 @@ export function useAppData() {
     hydrated,
     actions: {
       addLargeCategory,
+      updateLargeCategory,
       addMediumCategory,
+      updateMediumCategory,
       addSmallCategory,
+      updateSmallCategory,
       addMaterial,
+      updateMaterial,
       addPackagingItem,
+      updatePackagingItem,
       addShippingMethod,
+      updateShippingMethod,
       addLaborRole,
+      updateLaborRole,
       addEquipment,
+      updateEquipment,
       addProduct,
       addMaterialCostEntry,
       addPackagingCostEntry,
@@ -350,7 +423,5 @@ export function useAppData() {
     },
   }
 }
-
-export type AppActions = ReturnType<typeof useAppData>["actions"]
 
 export type AppActions = ReturnType<typeof useAppData>["actions"]

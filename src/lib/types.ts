@@ -80,7 +80,7 @@ export type Product = {
   baseManHours: number
   defaultElectricityCost: number
   registeredAt: string
-  options: string[]
+  notes?: string
   productionLotSize: number
   expectedProduction: {
     periodYears: number
@@ -317,7 +317,7 @@ export const sampleAppData: AppData = {
       baseManHours: 1.5,
       defaultElectricityCost: 25,
       registeredAt: "2024-05-01",
-      options: ["金具変更", "刺繍追加"],
+      notes: "S/Mの2サイズ展開。金具変更や刺繍オプションあり。",
       productionLotSize: 50,
       expectedProduction: {
         periodYears: 1,

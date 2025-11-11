@@ -95,7 +95,7 @@ export function RegisteredList({
               >
                 <span className="flex-1">{normalized.label}</span>
                 {onEdit && (
-                  <Button type="button" size="xs" variant="outline" onClick={() => onEdit(normalized.id)}>
+                  <Button type="button" size="sm" variant="outline" onClick={() => onEdit(normalized.id)}>
                     編集
                   </Button>
                 )}

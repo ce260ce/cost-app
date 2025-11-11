@@ -75,7 +75,7 @@ export default function Home() {
           <Card>
             <CardHeader>
               <CardTitle>商品一覧</CardTitle>
-              <CardDescription>登録済み商品のカテゴリ・サイズを確認</CardDescription>
+              <CardDescription>登録済み商品のカテゴリ・オプション・備考を確認</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {data.products.length === 0 ? (
@@ -86,7 +86,8 @@ export default function Home() {
                     <TableRow>
                       <TableHead>商品</TableHead>
                       <TableHead>カテゴリ</TableHead>
-                      <TableHead>サイズ/個数</TableHead>
+                      <TableHead>オプション/個数</TableHead>
+                      <TableHead>備考</TableHead>
                       <TableHead />
                     </TableRow>
                   </TableHeader>
@@ -100,16 +101,18 @@ export default function Home() {
                         .filter(Boolean)
                         .join(" / ") || "-"
 
-                      const sizeText = (product.sizeVariants ?? [])
+                      const optionText = (product.sizeVariants ?? [])
                         .filter((variant) => variant.label?.trim())
                         .map((variant) => `${variant.label}: ${variant.quantity}個`)
                         .join(" / ") || "-"
+                      const notesText = product.notes?.trim() || "-"
 
                       return (
                         <TableRow key={product.id}>
                           <TableCell className="font-medium">{product.name}</TableCell>
                           <TableCell>{categoryPath}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{sizeText}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{optionText}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{notesText}</TableCell>
                           <TableCell className="w-20 text-right">
                             <Button
                               type="button"
