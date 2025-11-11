@@ -2,6 +2,7 @@
 
 import { Dispatch, SetStateAction } from "react"
 
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { NumberInput } from "@/components/ui/number-input"
@@ -20,6 +21,39 @@ export function ProductBasicsSection({ data, productForm, setProductForm, handle
   const largeOptions = data.categories.large
   const mediumOptions = data.categories.medium.filter((m) => !productForm.categoryLargeId || m.largeId === productForm.categoryLargeId)
   const smallOptions = data.categories.small.filter((s) => !productForm.categoryMediumId || s.mediumId === productForm.categoryMediumId)
+
+  const calculateSizeTotal = (variants: Product["sizeVariants"]) =>
+    variants.reduce((sum, variant) => sum + (variant.label.trim() ? Number(variant.quantity) || 0 : 0), 0)
+
+  const updateSizeVariants = (
+    updater: (variants: Product["sizeVariants"]) => Product["sizeVariants"]
+  ) => {
+    setProductForm((prev) => {
+      const nextVariants = updater(prev.sizeVariants)
+      return {
+        ...prev,
+        sizeVariants: nextVariants,
+        productionLotSize:
+          nextVariants.length > 0 ? calculateSizeTotal(nextVariants) : prev.productionLotSize,
+      }
+    })
+  }
+
+  const handleAddSizeVariant = () => {
+    updateSizeVariants((variants) => [...variants, { label: "", quantity: 0 }])
+  }
+
+  const handleUpdateSizeVariant = (index: number, patch: Partial<{ label: string; quantity: number }>) => {
+    updateSizeVariants((variants) =>
+      variants.map((variant, variantIndex) =>
+        variantIndex === index ? { ...variant, ...patch } : variant
+      )
+    )
+  }
+
+  const handleRemoveSizeVariant = (index: number) => {
+    updateSizeVariants((variants) => variants.filter((_, variantIndex) => variantIndex !== index))
+  }
 
   return (
     <div className="grid gap-4">
@@ -79,23 +113,58 @@ export function ProductBasicsSection({ data, productForm, setProductForm, handle
           </SelectContent>
         </Select>
       </div>
-      <Textarea
-        placeholder="サイズ展開 (1行につき1パターンを入力)"
-        value={productForm.sizes.join("\n")}
-        rows={3}
-        onChange={(event) =>
-          setProductForm((prev) => ({
-            ...prev,
-            sizes: event.target.value
-              .split(/\r?\n/)
-              .map((size) => size.trim())
-              .filter(Boolean),
-          }))
-        }
-      />
-      <p className="text-xs text-muted-foreground">
-        複数サイズは改行で区切ってください。例) 4号、5号 ↵ 3~20号
-      </p>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs text-muted-foreground">サイズ展開</Label>
+          <Button type="button" variant="outline" size="sm" onClick={handleAddSizeVariant}>
+            サイズを追加
+          </Button>
+        </div>
+        {productForm.sizeVariants.length === 0 ? (
+          <p className="text-xs text-muted-foreground">サイズはまだ登録されていません。</p>
+        ) : (
+          <div className="space-y-2">
+            {productForm.sizeVariants.map((variant, index) => (
+              <div key={`size-${index}`} className="flex flex-wrap gap-2 rounded-md border p-3">
+                <div className="min-w-[140px] flex-1 space-y-1">
+                  <Label className="text-xs text-muted-foreground">サイズ名称</Label>
+                  <Input
+                    placeholder="例: S"
+                    value={variant.label}
+                    onChange={(event) =>
+                      handleUpdateSizeVariant(index, { label: event.target.value })
+                    }
+                  />
+                </div>
+                <div className="w-40 min-w-[120px] space-y-1">
+                  <Label className="text-xs text-muted-foreground">数量</Label>
+                  <NumberInput
+                    placeholder="例: 100"
+                    value={variant.quantity}
+                    onValueChange={(next) =>
+                      handleUpdateSizeVariant(index, { quantity: next === "" ? 0 : next })
+                    }
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemoveSizeVariant(index)}
+                    disabled={productForm.sizeVariants.length === 1}
+                  >
+                    削除
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">
+          例: S を 50 個、M を 30 個など、サイズ別の在庫予定を入力してください。
+        </p>
+      </div>
       <Textarea
         placeholder="オプションの種類 (例: 金具変更, 刺繍追加)"
         value={productForm.options.join(", ")}

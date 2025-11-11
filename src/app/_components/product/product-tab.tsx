@@ -161,7 +161,7 @@ export function ProductTab({ data, actions }: ProductTabProps) {
     categoryLargeId: "",
     categoryMediumId: "",
     categorySmallId: "",
-    sizes: [],
+    sizeVariants: [{ label: "", quantity: 0 }],
     baseManHours: 0,
     defaultElectricityCost: 0,
     registeredAt: new Date().toISOString().slice(0, 10),
@@ -252,8 +252,16 @@ export function ProductTab({ data, actions }: ProductTabProps) {
                   const newProductId = createTempId()
                   const electricityUnitCost =
                     electricityDrafts.find((draft) => Number(draft.costPerUnit) > 0)?.costPerUnit ?? 0
+                  const normalizedSizeVariants = productForm.sizeVariants
+                    .map((variant) => ({
+                      label: variant.label.trim(),
+                      quantity: Number(variant.quantity) || 0,
+                    }))
+                    .filter((variant) => variant.label.length > 0)
+
                   const normalizedProduct = {
                     ...productForm,
+                    sizeVariants: normalizedSizeVariants,
                     baseManHours: Number(productForm.baseManHours) || 0,
                     productionLotSize: Number(productForm.productionLotSize) || 1,
                     expectedProduction: {
@@ -387,7 +395,7 @@ export function ProductTab({ data, actions }: ProductTabProps) {
                     categoryLargeId: "",
                     categoryMediumId: "",
                     categorySmallId: "",
-                    sizes: [],
+                    sizeVariants: [{ label: "", quantity: 0 }],
                     baseManHours: 0,
                     defaultElectricityCost: 0,
                     registeredAt: new Date().toISOString().slice(0, 10),

@@ -65,13 +65,18 @@ export type Equipment = {
   note?: string
 }
 
+export type ProductSizeVariant = {
+  label: string
+  quantity: number
+}
+
 export type Product = {
   id: string
   name: string
   categoryLargeId?: string
   categoryMediumId?: string
   categorySmallId?: string
-  sizes: string[]
+  sizeVariants: ProductSizeVariant[]
   baseManHours: number
   defaultElectricityCost: number
   registeredAt: string
@@ -305,7 +310,10 @@ export const sampleAppData: AppData = {
       categoryLargeId: "cat-l-1",
       categoryMediumId: "cat-m-1",
       categorySmallId: "cat-s-1",
-      sizes: ["S", "M"],
+      sizeVariants: [
+        { label: "S", quantity: 1500 },
+        { label: "M", quantity: 1500 },
+      ],
       baseManHours: 1.5,
       defaultElectricityCost: 25,
       registeredAt: "2024-05-01",
