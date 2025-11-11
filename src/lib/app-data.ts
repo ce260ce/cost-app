@@ -321,3 +321,5 @@ export function useAppData() {
 }
 
 export type AppActions = ReturnType<typeof useAppData>["actions"]
+
+export type AppActions = ReturnType<typeof useAppData>["actions"]
