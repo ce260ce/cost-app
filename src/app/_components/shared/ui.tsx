@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
+type RegisteredItem = {
+  id: string
+  label: string
+}
+
 export function HintList({ items }: { items: string[] }) {
   if (items.length === 0) return null
   return (
@@ -60,17 +65,43 @@ export function DraftCard({ children, onRemove, hideRemove }: { children: ReactN
   )
 }
 
-export function RegisteredList({ title, items }: { title: string; items: string[] }) {
+export function RegisteredList({
+  title,
+  items,
+  onEdit,
+  emptyLabel,
+}: {
+  title: string
+  items: (RegisteredItem | string)[]
+  onEdit?: (id: string) => void
+  emptyLabel?: string
+}) {
   return (
     <div className="space-y-1 text-sm">
       <p className="font-semibold text-muted-foreground">{title}</p>
       {items.length === 0 ? (
-        <p className="text-xs text-muted-foreground">まだ登録がありません。</p>
+        <p className="text-xs text-muted-foreground">{emptyLabel ?? "まだ登録がありません。"}</p>
       ) : (
-        <ul className="list-disc space-y-1 pl-5 text-xs text-muted-foreground">
-          {items.map((item, index) => (
-            <li key={`${title}-${index}`}>{item}</li>
-          ))}
+        <ul className="space-y-1 text-xs text-muted-foreground">
+          {items.map((rawItem, index) => {
+            const normalized =
+              typeof rawItem === "string"
+                ? { id: `${title}-${index}`, label: rawItem }
+                : rawItem
+            return (
+              <li
+                key={normalized.id}
+                className="flex items-center justify-between gap-2 rounded border border-transparent px-2 py-1 hover:border-muted"
+              >
+                <span className="flex-1">{normalized.label}</span>
+                {onEdit && (
+                  <Button type="button" size="xs" variant="outline" onClick={() => onEdit(normalized.id)}>
+                    編集
+                  </Button>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>

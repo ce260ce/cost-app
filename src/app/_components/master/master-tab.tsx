@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { NumberInput } from "@/components/ui/number-input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
+import { toast } from "sonner"
 import type { AppActions } from "@/lib/app-data"
 import { formatCurrency } from "@/lib/calculations"
 import { currencyOptions } from "@/lib/constants"
@@ -30,7 +32,7 @@ interface MasterTabProps {
   actions: AppActions
 }
 
-export function MasterTab({ data, actions }: MasterTabProps) {
+function MasterRegisterView({ data, actions }: MasterTabProps) {
   const [largeCategory, setLargeCategory] = useState<Omit<CategoryLarge, "id">>({ name: "", description: "" })
   const [mediumCategory, setMediumCategory] = useState<Omit<CategoryMedium, "id">>({
     name: "",
@@ -680,6 +682,1051 @@ export function MasterTab({ data, actions }: MasterTabProps) {
               items={data.equipments.map((equipment) => `${equipment.name} / ${formatCurrency(equipment.acquisitionCost, equipment.currency)} / ${equipment.amortizationYears}年`)}
             />
           </form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+export function MasterTab({ data, actions }: MasterTabProps) {
+  const [view, setView] = useState<"register" | "list">("register")
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant={view === "register" ? "default" : "outline"}
+          onClick={() => setView("register")}
+        >
+          マスタ登録
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={view === "list" ? "default" : "outline"}
+          onClick={() => setView("list")}
+        >
+          登録済みマスタ
+        </Button>
+      </div>
+
+      {view === "register" ? (
+        <MasterRegisterView data={data} actions={actions} />
+      ) : (
+        <MasterListView data={data} actions={actions} />
+      )}
+    </div>
+  )
+}
+
+function MasterListView({ data, actions }: MasterTabProps) {
+  const {
+    updateLargeCategory,
+    updateMediumCategory,
+    updateSmallCategory,
+    updateMaterial,
+    updatePackagingItem,
+    updateShippingMethod,
+    updateLaborRole,
+    updateEquipment,
+  } = actions
+
+  const [editingLarge, setEditingLarge] = useState({ id: null as string | null, name: "", description: "" })
+  const [editingMedium, setEditingMedium] = useState({
+    id: null as string | null,
+    name: "",
+    description: "",
+    largeId: "",
+  })
+  const [editingSmall, setEditingSmall] = useState({
+    id: null as string | null,
+    name: "",
+    description: "",
+    mediumId: "",
+  })
+  const [editingMaterial, setEditingMaterial] = useState<Omit<Material, "id"> & { id: string | null }>({
+    id: null,
+    name: "",
+    unit: "kg",
+    sizeDescription: "",
+    currency: "JPY",
+    unitCost: 0,
+    supplier: "",
+    note: "",
+  })
+  const [editingPackaging, setEditingPackaging] = useState<Omit<PackagingItem, "id"> & { id: string | null }>({
+    id: null,
+    name: "",
+    unit: "set",
+    sizeDescription: "",
+    currency: "JPY",
+    unitCost: 0,
+    note: "",
+  })
+  const [editingShipping, setEditingShipping] = useState<Omit<ShippingMethod, "id"> & { id: string | null }>({
+    id: null,
+    name: "",
+    description: "",
+    unitCost: 0,
+    currency: "JPY",
+    note: "",
+  })
+  const [editingLabor, setEditingLabor] = useState<Omit<LaborRole, "id"> & { id: string | null }>({
+    id: null,
+    name: "",
+    hourlyRate: 1800,
+    currency: "JPY",
+    note: "",
+  })
+  const [editingEquipment, setEditingEquipment] = useState<Omit<Equipment, "id"> & { id: string | null }>({
+    id: null,
+    name: "",
+    acquisitionCost: 0,
+    currency: "JPY",
+    amortizationYears: 5,
+    note: "",
+  })
+
+  const resetLarge = () => setEditingLarge({ id: null, name: "", description: "" })
+  const resetMedium = () => setEditingMedium({ id: null, name: "", description: "", largeId: "" })
+  const resetSmall = () => setEditingSmall({ id: null, name: "", description: "", mediumId: "" })
+  const resetMaterial = () =>
+    setEditingMaterial({ id: null, name: "", unit: "kg", sizeDescription: "", currency: "JPY", unitCost: 0, supplier: "", note: "" })
+  const resetPackaging = () =>
+    setEditingPackaging({ id: null, name: "", unit: "set", sizeDescription: "", currency: "JPY", unitCost: 0, note: "" })
+  const resetShipping = () => setEditingShipping({ id: null, name: "", description: "", unitCost: 0, currency: "JPY", note: "" })
+  const resetLabor = () => setEditingLabor({ id: null, name: "", hourlyRate: 1800, currency: "JPY", note: "" })
+  const resetEquipment = () =>
+    setEditingEquipment({ id: null, name: "", acquisitionCost: 0, currency: "JPY", amortizationYears: 5, note: "" })
+
+  const handleLargeSave = () => {
+    if (!editingLarge.id) return
+    const name = editingLarge.name.trim()
+    if (!name) return
+    updateLargeCategory({ id: editingLarge.id, name, description: editingLarge.description || undefined })
+    toast.success("大カテゴリを更新しました", { description: `「${name}」を更新しました。` })
+    resetLarge()
+  }
+
+  const handleMediumSave = () => {
+    if (!editingMedium.id || !editingMedium.largeId) return
+    const name = editingMedium.name.trim()
+    if (!name) return
+    updateMediumCategory({
+      id: editingMedium.id,
+      name,
+      description: editingMedium.description || undefined,
+      largeId: editingMedium.largeId,
+    })
+    toast.success("中カテゴリを更新しました", { description: `「${name}」を更新しました。` })
+    resetMedium()
+  }
+
+  const handleSmallSave = () => {
+    if (!editingSmall.id || !editingSmall.mediumId) return
+    const name = editingSmall.name.trim()
+    if (!name) return
+    updateSmallCategory({
+      id: editingSmall.id,
+      name,
+      description: editingSmall.description || undefined,
+      mediumId: editingSmall.mediumId,
+    })
+    toast.success("小カテゴリを更新しました", { description: `「${name}」を更新しました。` })
+    resetSmall()
+  }
+
+  const handleMaterialSave = () => {
+    if (!editingMaterial.id) return
+    const name = editingMaterial.name.trim()
+    if (!name) return
+    updateMaterial({ id: editingMaterial.id, ...editingMaterial, name })
+    toast.success("材料を更新しました", {
+      description: `${name} / ${formatCurrency(editingMaterial.unitCost, editingMaterial.currency)}`,
+    })
+    resetMaterial()
+  }
+
+  const handlePackagingSave = () => {
+    if (!editingPackaging.id) return
+    const name = editingPackaging.name.trim()
+    if (!name) return
+    updatePackagingItem({ id: editingPackaging.id, ...editingPackaging, name })
+    toast.success("梱包材を更新しました", {
+      description: `${name} / ${formatCurrency(editingPackaging.unitCost, editingPackaging.currency)}`,
+    })
+    resetPackaging()
+  }
+
+  const handleShippingSave = () => {
+    if (!editingShipping.id) return
+    const name = editingShipping.name.trim()
+    if (!name) return
+    updateShippingMethod({ id: editingShipping.id, ...editingShipping, name })
+    toast.success("配送方法を更新しました", {
+      description: `${name} / ${formatCurrency(editingShipping.unitCost, editingShipping.currency)}`,
+    })
+    resetShipping()
+  }
+
+  const handleLaborSave = () => {
+    if (!editingLabor.id) return
+    const name = editingLabor.name.trim()
+    if (!name) return
+    updateLaborRole({ id: editingLabor.id, ...editingLabor, name })
+    toast.success("人件費レートを更新しました", {
+      description: `${name} / ${formatCurrency(editingLabor.hourlyRate, editingLabor.currency)}`,
+    })
+    resetLabor()
+  }
+
+  const handleEquipmentSave = () => {
+    if (!editingEquipment.id) return
+    const name = editingEquipment.name.trim()
+    if (!name) return
+    updateEquipment({ id: editingEquipment.id, ...editingEquipment, name })
+    toast.success("設備を更新しました", {
+      description: `${name} / ${formatCurrency(editingEquipment.acquisitionCost, editingEquipment.currency)}`,
+    })
+    resetEquipment()
+  }
+
+  const renderActionButtons = (onSave: () => void, onCancel: () => void) => (
+    <div className="flex gap-2">
+      <Button type="button" size="sm" onClick={onSave}>
+        保存
+      </Button>
+      <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+        キャンセル
+      </Button>
+    </div>
+  )
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>カテゴリ一覧</CardTitle>
+          <CardDescription>既存カテゴリをその場で編集できます。</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div>
+            <p className="mb-2 font-semibold">大カテゴリ</p>
+            {data.categories.large.length === 0 ? (
+              <p className="text-sm text-muted-foreground">まだ登録がありません。</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>名称</TableHead>
+                    <TableHead>概要</TableHead>
+                    <TableHead className="w-36">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.categories.large.map((category) => {
+                    const isEditing = editingLarge.id === category.id
+                    return (
+                      <TableRow key={category.id}>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              value={editingLarge.name}
+                              onChange={(event) => setEditingLarge((prev) => ({ ...prev, name: event.target.value }))}
+                            />
+                          ) : (
+                            category.name
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Textarea
+                              value={editingLarge.description}
+                              onChange={(event) => setEditingLarge((prev) => ({ ...prev, description: event.target.value }))}
+                            />
+                          ) : (
+                            category.description || "-"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isEditing
+                            ? renderActionButtons(handleLargeSave, resetLarge)
+                            : (
+                                <Button type="button" size="sm" variant="outline" onClick={() => setEditingLarge({ id: category.id, name: category.name, description: category.description ?? "" })}>
+                                  編集
+                                </Button>
+                              )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          <div>
+            <p className="mb-2 font-semibold">中カテゴリ</p>
+            {data.categories.medium.length === 0 ? (
+              <p className="text-sm text-muted-foreground">まだ登録がありません。</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>名称</TableHead>
+                    <TableHead>親カテゴリ</TableHead>
+                    <TableHead>概要</TableHead>
+                    <TableHead className="w-36">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.categories.medium.map((category) => {
+                    const isEditing = editingMedium.id === category.id
+                    const parentName = data.categories.large.find((c) => c.id === category.largeId)?.name ?? "-"
+                    return (
+                      <TableRow key={category.id}>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              value={editingMedium.name}
+                              onChange={(event) => setEditingMedium((prev) => ({ ...prev, name: event.target.value }))}
+                            />
+                          ) : (
+                            category.name
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Select
+                              value={editingMedium.largeId}
+                              onValueChange={(value) => setEditingMedium((prev) => ({ ...prev, largeId: value }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="親カテゴリ" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {data.categories.large.map((large) => (
+                                  <SelectItem key={large.id} value={large.id}>
+                                    {large.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            parentName
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Textarea
+                              value={editingMedium.description}
+                              onChange={(event) => setEditingMedium((prev) => ({ ...prev, description: event.target.value }))}
+                            />
+                          ) : (
+                            category.description || "-"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isEditing
+                            ? renderActionButtons(handleMediumSave, resetMedium)
+                            : (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setEditingMedium({
+                                      id: category.id,
+                                      name: category.name,
+                                      description: category.description ?? "",
+                                      largeId: category.largeId,
+                                    })
+                                  }
+                                >
+                                  編集
+                                </Button>
+                              )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          <div>
+            <p className="mb-2 font-semibold">小カテゴリ</p>
+            {data.categories.small.length === 0 ? (
+              <p className="text-sm text-muted-foreground">まだ登録がありません。</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>名称</TableHead>
+                    <TableHead>親カテゴリ</TableHead>
+                    <TableHead>概要</TableHead>
+                    <TableHead className="w-36">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.categories.small.map((category) => {
+                    const isEditing = editingSmall.id === category.id
+                    const parent = data.categories.medium.find((c) => c.id === category.mediumId)?.name ?? "-"
+                    return (
+                      <TableRow key={category.id}>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              value={editingSmall.name}
+                              onChange={(event) => setEditingSmall((prev) => ({ ...prev, name: event.target.value }))}
+                            />
+                          ) : (
+                            category.name
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Select
+                              value={editingSmall.mediumId}
+                              onValueChange={(value) => setEditingSmall((prev) => ({ ...prev, mediumId: value }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="親カテゴリ" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {data.categories.medium.map((medium) => (
+                                  <SelectItem key={medium.id} value={medium.id}>
+                                    {medium.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            parent
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Textarea
+                              value={editingSmall.description}
+                              onChange={(event) => setEditingSmall((prev) => ({ ...prev, description: event.target.value }))}
+                            />
+                          ) : (
+                            category.description || "-"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isEditing
+                            ? renderActionButtons(handleSmallSave, resetSmall)
+                            : (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setEditingSmall({
+                                      id: category.id,
+                                      name: category.name,
+                                      description: category.description ?? "",
+                                      mediumId: category.mediumId,
+                                    })
+                                  }
+                                >
+                                  編集
+                                </Button>
+                              )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>材料一覧</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data.materials.length === 0 ? (
+              <p className="text-sm text-muted-foreground">まだ登録がありません。</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>名称</TableHead>
+                    <TableHead>単位</TableHead>
+                    <TableHead>単価</TableHead>
+                    <TableHead>仕入先</TableHead>
+                    <TableHead>備考</TableHead>
+                    <TableHead className="w-36">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.materials.map((material) => {
+                    const isEditing = editingMaterial.id === material.id
+                    return (
+                      <TableRow key={material.id}>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              value={editingMaterial.name}
+                              onChange={(event) => setEditingMaterial((prev) => ({ ...prev, name: event.target.value }))}
+                            />
+                          ) : (
+                            material.name
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              value={editingMaterial.unit}
+                              onChange={(event) => setEditingMaterial((prev) => ({ ...prev, unit: event.target.value }))}
+                            />
+                          ) : (
+                            material.unit
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <div className="flex gap-2">
+                              <NumberInput
+                                value={editingMaterial.unitCost}
+                                onValueChange={(next) => setEditingMaterial((prev) => ({ ...prev, unitCost: next === "" ? 0 : next }))}
+                              />
+                              <Select
+                                value={editingMaterial.currency}
+                                onValueChange={(value) => setEditingMaterial((prev) => ({ ...prev, currency: value }))}
+                              >
+                                <SelectTrigger className="w-24">
+                                  <SelectValue placeholder="通貨" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {currencyOptions.map((currency) => (
+                                    <SelectItem key={currency} value={currency}>
+                                      {currency}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : (
+                            formatCurrency(material.unitCost, material.currency)
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              value={editingMaterial.supplier}
+                              onChange={(event) => setEditingMaterial((prev) => ({ ...prev, supplier: event.target.value }))}
+                            />
+                          ) : (
+                            material.supplier || "-"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Textarea
+                              value={editingMaterial.note}
+                              onChange={(event) => setEditingMaterial((prev) => ({ ...prev, note: event.target.value }))}
+                            />
+                          ) : (
+                            material.note || "-"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isEditing
+                            ? renderActionButtons(handleMaterialSave, resetMaterial)
+                            : (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setEditingMaterial({
+                                      id: material.id,
+                                      name: material.name,
+                                      unit: material.unit,
+                                      sizeDescription: material.sizeDescription,
+                                      currency: material.currency,
+                                      unitCost: material.unitCost,
+                                      supplier: material.supplier ?? "",
+                                      note: material.note ?? "",
+                                    })
+                                  }
+                                >
+                                  編集
+                                </Button>
+                              )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>梱包材一覧</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data.packagingItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground">まだ登録がありません。</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>名称</TableHead>
+                    <TableHead>単位</TableHead>
+                    <TableHead>単価</TableHead>
+                    <TableHead>仕様</TableHead>
+                    <TableHead>備考</TableHead>
+                    <TableHead className="w-36">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.packagingItems.map((item) => {
+                    const isEditing = editingPackaging.id === item.id
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              value={editingPackaging.name}
+                              onChange={(event) => setEditingPackaging((prev) => ({ ...prev, name: event.target.value }))}
+                            />
+                          ) : (
+                            item.name
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              value={editingPackaging.unit}
+                              onChange={(event) => setEditingPackaging((prev) => ({ ...prev, unit: event.target.value }))}
+                            />
+                          ) : (
+                            item.unit
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <div className="flex gap-2">
+                              <NumberInput
+                                value={editingPackaging.unitCost}
+                                onValueChange={(next) => setEditingPackaging((prev) => ({ ...prev, unitCost: next === "" ? 0 : next }))}
+                              />
+                              <Select
+                                value={editingPackaging.currency}
+                                onValueChange={(value) => setEditingPackaging((prev) => ({ ...prev, currency: value }))}
+                              >
+                                <SelectTrigger className="w-24">
+                                  <SelectValue placeholder="通貨" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {currencyOptions.map((currency) => (
+                                    <SelectItem key={currency} value={currency}>
+                                      {currency}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : (
+                            formatCurrency(item.unitCost, item.currency)
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              value={editingPackaging.sizeDescription}
+                              onChange={(event) => setEditingPackaging((prev) => ({ ...prev, sizeDescription: event.target.value }))}
+                            />
+                          ) : (
+                            item.sizeDescription || "-"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Textarea
+                              value={editingPackaging.note}
+                              onChange={(event) => setEditingPackaging((prev) => ({ ...prev, note: event.target.value }))}
+                            />
+                          ) : (
+                            item.note || "-"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isEditing
+                            ? renderActionButtons(handlePackagingSave, resetPackaging)
+                            : (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setEditingPackaging({
+                                      id: item.id,
+                                      name: item.name,
+                                      unit: item.unit,
+                                      sizeDescription: item.sizeDescription,
+                                      currency: item.currency,
+                                      unitCost: item.unitCost,
+                                      note: item.note ?? "",
+                                    })
+                                  }
+                                >
+                                  編集
+                                </Button>
+                              )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>配送方法一覧</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(data.shippingMethods ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">まだ登録がありません。</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>名称</TableHead>
+                    <TableHead>説明</TableHead>
+                    <TableHead>単価</TableHead>
+                    <TableHead>備考</TableHead>
+                    <TableHead className="w-36">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(data.shippingMethods ?? []).map((method) => {
+                    const isEditing = editingShipping.id === method.id
+                    return (
+                      <TableRow key={method.id}>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              value={editingShipping.name}
+                              onChange={(event) => setEditingShipping((prev) => ({ ...prev, name: event.target.value }))}
+                            />
+                          ) : (
+                            method.name
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              value={editingShipping.description ?? ""}
+                              onChange={(event) => setEditingShipping((prev) => ({ ...prev, description: event.target.value }))}
+                            />
+                          ) : (
+                            method.description || "-"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <div className="flex gap-2">
+                              <NumberInput
+                                value={editingShipping.unitCost}
+                                onValueChange={(next) => setEditingShipping((prev) => ({ ...prev, unitCost: next === "" ? 0 : next }))}
+                              />
+                              <Select
+                                value={editingShipping.currency}
+                                onValueChange={(value) => setEditingShipping((prev) => ({ ...prev, currency: value }))}
+                              >
+                                <SelectTrigger className="w-24">
+                                  <SelectValue placeholder="通貨" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {currencyOptions.map((currency) => (
+                                    <SelectItem key={currency} value={currency}>
+                                      {currency}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : (
+                            formatCurrency(method.unitCost, method.currency)
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Textarea
+                              value={editingShipping.note ?? ""}
+                              onChange={(event) => setEditingShipping((prev) => ({ ...prev, note: event.target.value }))}
+                            />
+                          ) : (
+                            method.note || "-"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isEditing
+                            ? renderActionButtons(handleShippingSave, resetShipping)
+                            : (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setEditingShipping({
+                                      id: method.id,
+                                      name: method.name,
+                                      description: method.description ?? "",
+                                      unitCost: method.unitCost,
+                                      currency: method.currency,
+                                      note: method.note ?? "",
+                                    })
+                                  }
+                                >
+                                  編集
+                                </Button>
+                              )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>人件費一覧</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data.laborRoles.length === 0 ? (
+              <p className="text-sm text-muted-foreground">まだ登録がありません。</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>作業カテゴリ</TableHead>
+                    <TableHead>時給</TableHead>
+                    <TableHead>備考</TableHead>
+                    <TableHead className="w-36">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.laborRoles.map((role) => {
+                    const isEditing = editingLabor.id === role.id
+                    return (
+                      <TableRow key={role.id}>
+                        <TableCell>
+                          {isEditing ? (
+                            <Input
+                              value={editingLabor.name}
+                              onChange={(event) => setEditingLabor((prev) => ({ ...prev, name: event.target.value }))}
+                            />
+                          ) : (
+                            role.name
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <div className="flex gap-2">
+                              <NumberInput
+                                value={editingLabor.hourlyRate}
+                                onValueChange={(next) => setEditingLabor((prev) => ({ ...prev, hourlyRate: next === "" ? 0 : next }))}
+                              />
+                              <Select
+                                value={editingLabor.currency}
+                                onValueChange={(value) => setEditingLabor((prev) => ({ ...prev, currency: value }))}
+                              >
+                                <SelectTrigger className="w-24">
+                                  <SelectValue placeholder="通貨" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {currencyOptions.map((currency) => (
+                                    <SelectItem key={currency} value={currency}>
+                                      {currency}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ) : (
+                            formatCurrency(role.hourlyRate, role.currency)
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditing ? (
+                            <Textarea
+                              value={editingLabor.note ?? ""}
+                              onChange={(event) => setEditingLabor((prev) => ({ ...prev, note: event.target.value }))}
+                            />
+                          ) : (
+                            role.note || "-"
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isEditing
+                            ? renderActionButtons(handleLaborSave, resetLabor)
+                            : (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setEditingLabor({
+                                      id: role.id,
+                                      name: role.name,
+                                      hourlyRate: role.hourlyRate,
+                                      currency: role.currency,
+                                      note: role.note ?? "",
+                                    })
+                                  }
+                                >
+                                  編集
+                                </Button>
+                              )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>設備一覧</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.equipments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">まだ登録がありません。</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>名称</TableHead>
+                  <TableHead>取得額</TableHead>
+                  <TableHead>償却年数</TableHead>
+                  <TableHead>備考</TableHead>
+                  <TableHead className="w-36">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.equipments.map((equipment) => {
+                  const isEditing = editingEquipment.id === equipment.id
+                  return (
+                    <TableRow key={equipment.id}>
+                      <TableCell>
+                        {isEditing ? (
+                          <Input
+                            value={editingEquipment.name}
+                            onChange={(event) => setEditingEquipment((prev) => ({ ...prev, name: event.target.value }))}
+                          />
+                        ) : (
+                          equipment.name
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isEditing ? (
+                          <div className="flex gap-2">
+                            <NumberInput
+                              value={editingEquipment.acquisitionCost}
+                              onValueChange={(next) =>
+                                setEditingEquipment((prev) => ({ ...prev, acquisitionCost: next === "" ? 0 : next }))
+                              }
+                            />
+                            <Select
+                              value={editingEquipment.currency}
+                              onValueChange={(value) => setEditingEquipment((prev) => ({ ...prev, currency: value }))}
+                            >
+                              <SelectTrigger className="w-24">
+                                <SelectValue placeholder="通貨" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {currencyOptions.map((currency) => (
+                                  <SelectItem key={currency} value={currency}>
+                                    {currency}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ) : (
+                          formatCurrency(equipment.acquisitionCost, equipment.currency)
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isEditing ? (
+                          <NumberInput
+                            value={editingEquipment.amortizationYears}
+                            onValueChange={(next) =>
+                              setEditingEquipment((prev) => ({ ...prev, amortizationYears: next === "" ? 0 : next }))
+                            }
+                          />
+                        ) : (
+                          `${equipment.amortizationYears}年`
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {isEditing ? (
+                          <Textarea
+                            value={editingEquipment.note ?? ""}
+                            onChange={(event) => setEditingEquipment((prev) => ({ ...prev, note: event.target.value }))}
+                          />
+                        ) : (
+                          equipment.note || "-"
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {isEditing
+                          ? renderActionButtons(handleEquipmentSave, resetEquipment)
+                          : (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  setEditingEquipment({
+                                    id: equipment.id,
+                                    name: equipment.name,
+                                    acquisitionCost: equipment.acquisitionCost,
+                                    currency: equipment.currency,
+                                    amortizationYears: equipment.amortizationYears,
+                                    note: equipment.note ?? "",
+                                  })
+                                }
+                              >
+                                編集
+                              </Button>
+                            )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
