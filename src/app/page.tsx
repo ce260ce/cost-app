@@ -2,6 +2,8 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAppData } from "@/lib/app-data"
 import { MasterTab } from "./_components/master/master-tab"
@@ -40,26 +42,73 @@ export default function Home() {
         </div>
       </header>
 
-      <Tabs defaultValue="cost">
-        <TabsList>
-          <TabsTrigger value="cost">原価サマリ</TabsTrigger>
-          <TabsTrigger value="product">商品登録</TabsTrigger>
-          <TabsTrigger value="master">マスタ登録</TabsTrigger>
-        </TabsList>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <Tabs defaultValue="cost">
+          <TabsList>
+            <TabsTrigger value="cost">原価サマリ</TabsTrigger>
+            <TabsTrigger value="product">商品登録</TabsTrigger>
+            <TabsTrigger value="master">マスタ登録</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="cost" className="space-y-6">
-          <CostTab data={data} />
-        </TabsContent>
+          <TabsContent value="cost" className="space-y-6">
+            <CostTab data={data} />
+          </TabsContent>
 
-        <TabsContent value="product" className="space-y-6">
-          <ProductTab data={data} actions={actions} />
-        </TabsContent>
+          <TabsContent value="product" className="space-y-6">
+            <ProductTab data={data} actions={actions} />
+          </TabsContent>
 
-        <TabsContent value="master" className="space-y-6">
-          <MasterTab data={data} actions={actions} />
-        </TabsContent>
+          <TabsContent value="master" className="space-y-6">
+            <MasterTab data={data} actions={actions} />
+          </TabsContent>
+        </Tabs>
 
-      </Tabs>
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle>商品一覧</CardTitle>
+            <CardDescription>登録済み商品のカテゴリ・サイズを確認</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {data.products.length === 0 ? (
+              <p className="text-sm text-muted-foreground">まだ商品がありません。</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>商品</TableHead>
+                    <TableHead>カテゴリ</TableHead>
+                    <TableHead>サイズ/個数</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.products.map((product) => {
+                    const categoryPath = [
+                      data.categories.large.find((c) => c.id === product.categoryLargeId)?.name,
+                      data.categories.medium.find((c) => c.id === product.categoryMediumId)?.name,
+                      data.categories.small.find((c) => c.id === product.categorySmallId)?.name,
+                    ]
+                      .filter(Boolean)
+                      .join(" / ") || "-"
+
+                    const sizeText = (product.sizeVariants ?? [])
+                      .filter((variant) => variant.label?.trim())
+                      .map((variant) => `${variant.label}: ${variant.quantity}個`)
+                      .join(" / ") || "-"
+
+                    return (
+                      <TableRow key={product.id}>
+                        <TableCell className="font-medium">{product.name}</TableCell>
+                        <TableCell>{categoryPath}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{sizeText}</TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </main>
   )
 }
